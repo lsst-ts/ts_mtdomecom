@@ -19,19 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Sphinx configuration file for an LSST stack package.
+import setuptools_scm
+from setuptools import setup
 
-This configuration only affects single-package Sphinx documentation builds.
-"""
-
-import lsst.ts.mtdomecom  # noqa
-from documenteer.conf.pipelinespkg import *  # noqa
-
-project = "ts_mtdomecom"
-html_theme_options["logotext"] = project  # type: ignore # noqa
-html_title = project
-html_short_title = project
-html_static_path = ["_static"]
-html_css_files = ["mystyle.css"]
-
-intersphinx_mapping["ts_xml"] = ("https://ts-xml.lsst.io", None)  # type: ignore # noqa
+setup(version=setuptools_scm.get_version())
