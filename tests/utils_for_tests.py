@@ -19,19 +19,30 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import typing
+import dataclasses
 
-# For an explanation why these next lines are so complicated, see
-# https://confluence.lsstcorp.org/pages/viewpage.action?spaceKey=LTS&title=Enabling+Mypy+in+Pytest
-if typing.TYPE_CHECKING:
-    __version__ = "?"
-else:
-    try:
-        from .version import *
-    except ImportError:
-        __version__ = "?"
+from lsst.ts import mtdomecom
+from lsst.ts.xml.enums.MTDome import MotionState
 
-from . import llc_configuration_limits, mock_llc, power_management, schema
-from .enums import *
-from .mock_controller import *
-from .mtdome_com import *
+
+@dataclasses.dataclass
+class CoolDownTestData:
+    tai: float
+    power_drawn: float
+    expected_power_available: float
+    expected_state: mtdomecom.SlipRingState
+
+
+@dataclasses.dataclass
+class ExpectedState:
+    tai: float
+    position: float
+    velocity: float
+    motion_state: MotionState
+
+
+@dataclasses.dataclass
+class SlipRingTestData:
+    max_power_drawn: float
+    time_over_limit: float
+    expected_cool_down_time: float

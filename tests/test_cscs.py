@@ -19,19 +19,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import typing
+import unittest
 
-# For an explanation why these next lines are so complicated, see
-# https://confluence.lsstcorp.org/pages/viewpage.action?spaceKey=LTS&title=Enabling+Mypy+in+Pytest
-if typing.TYPE_CHECKING:
-    __version__ = "?"
-else:
-    try:
-        from .version import *
-    except ImportError:
-        __version__ = "?"
+import pytest
+from lsst.ts import mtdomecom
 
-from . import llc_configuration_limits, mock_llc, power_management, schema
-from .enums import *
-from .mock_controller import *
-from .mtdome_com import *
+START_TAI = 10001.0
+
+
+class CalibrationScreenTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_calibration_screen_status(self) -> None:
+        cscs = mtdomecom.mock_llc.CscsStatus(start_tai=START_TAI)
+        await cscs.determine_status(current_tai=START_TAI)
+        assert cscs.llc_status["positionActual"] == pytest.approx(0.0)
+        assert cscs.llc_status["positionCommanded"] == pytest.approx(0.0)
