@@ -19,19 +19,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+__all__ = ["AbstractLimits"]
+
 import typing
+from abc import ABC, abstractmethod
 
-# For an explanation why these next lines are so complicated, see
-# https://confluence.lsstcorp.org/pages/viewpage.action?spaceKey=LTS&title=Enabling+Mypy+in+Pytest
-if typing.TYPE_CHECKING:
-    __version__ = "?"
-else:
-    try:
-        from .version import *
-    except ImportError:
-        __version__ = "?"
+from ..enums import MaxValuesConfigType
 
-from . import llc_configuration_limits, mock_llc, power_management, schema
-from .enums import *
-from .mock_controller import *
-from .mtdome_com import *
+
+class AbstractLimits(ABC):
+    """An abstract base class for holding the configuration limits for the
+    lower level components.
+
+    It holds common methods.
+    """
+
+    @abstractmethod
+    def validate(
+        self, configuration_parameters: MaxValuesConfigType
+    ) -> list[dict[str, typing.Any]]:
+        pass
