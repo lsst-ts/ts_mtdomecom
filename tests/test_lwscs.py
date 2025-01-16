@@ -24,7 +24,6 @@ import unittest
 
 import pytest
 from lsst.ts import mtdomecom
-from lsst.ts.mtdomecom.mock_llc.lwscs import CURRENT_PER_MOTOR, NUM_MOTORS
 from lsst.ts.mtdomecom.power_management.power_draw_constants import LWS_POWER_DRAW
 from lsst.ts.xml.enums.MTDome import MotionState
 from utils_for_tests import ExpectedState
@@ -92,13 +91,15 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             expected_velocity
         )
         assert expected_motion_state.name == self.lwscs.llc_status["status"]["status"]
-        expected_drive_current: list[float] = [0.0] * NUM_MOTORS
+        expected_drive_current: list[float] = [0.0] * mtdomecom.LWSCS_NUM_MOTORS
         expected_power_draw = 0.0
         if expected_motion_state in [
             MotionState.CRAWLING,
             MotionState.MOVING,
         ]:
-            expected_drive_current = [CURRENT_PER_MOTOR] * NUM_MOTORS
+            expected_drive_current = [
+                mtdomecom.LWSCS_CURRENT_PER_MOTOR
+            ] * mtdomecom.LWSCS_NUM_MOTORS
             expected_power_draw = LWS_POWER_DRAW
         assert expected_drive_current == self.lwscs.llc_status["driveCurrentActual"]
         assert expected_power_draw == self.lwscs.llc_status["powerDraw"]

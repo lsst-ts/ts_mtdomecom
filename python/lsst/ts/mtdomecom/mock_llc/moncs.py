@@ -19,17 +19,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["MoncsStatus", "NUM_MON_SENSORS"]
+__all__ = ["MoncsStatus"]
 
 import logging
 
 import numpy as np
 from lsst.ts.xml.enums.MTDome import MotionState
 
+from ..constants import MON_NUM_SENSORS
 from ..enums import InternalMotionState
 from .base_mock_llc import BaseMockStatus
-
-NUM_MON_SENSORS = 16
 
 
 class MoncsStatus(BaseMockStatus):
@@ -42,7 +41,7 @@ class MoncsStatus(BaseMockStatus):
         self.log = logging.getLogger("MockMoncsStatus")
         self.status = MotionState.CLOSED
         self.messages = [{"code": 0, "description": "No Errors"}]
-        self.data = np.zeros(NUM_MON_SENSORS, dtype=float)
+        self.data = np.zeros(MON_NUM_SENSORS, dtype=float)
 
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in

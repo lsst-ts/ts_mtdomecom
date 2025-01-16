@@ -19,18 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["RadStatus", "NUM_DOORS", "NUM_LIMIT_SWITCHES", "NUM_LOCKING_PINS"]
+__all__ = ["RadStatus"]
 
 import logging
 
 import numpy as np
 from lsst.ts.xml.enums.MTDome import MotionState, RadLockingPinState
 
+from ..constants import RAD_NUM_DOORS, RAD_NUM_LIMIT_SWITCHES, RAD_NUM_LOCKING_PINS
 from .base_mock_llc import DEFAULT_MESSAGES, BaseMockStatus
-
-NUM_DOORS = 2
-NUM_LIMIT_SWITCHES = 4
-NUM_LOCKING_PINS = 2
 
 
 class RadStatus(BaseMockStatus):
@@ -41,22 +38,26 @@ class RadStatus(BaseMockStatus):
         self.log = logging.getLogger("MockRadStatus")
 
         # Variables holding the status of the mock Rear Access Door.
-        self.status = np.full(NUM_DOORS, MotionState.CLOSED.name, dtype=object)
+        self.status = np.full(RAD_NUM_DOORS, MotionState.CLOSED.name, dtype=object)
         self.messages = DEFAULT_MESSAGES
-        self.position_actual = np.zeros(NUM_DOORS, dtype=float)
-        self.position_commanded = np.zeros(NUM_DOORS, dtype=float)
-        self.drive_torque_actual = np.zeros(NUM_DOORS, dtype=float)
-        self.drive_torque_commanded = np.zeros(NUM_DOORS, dtype=float)
-        self.drive_current_actual = np.zeros(NUM_DOORS, dtype=float)
-        self.drive_temperature = np.full(NUM_DOORS, 20.0, dtype=float)
-        self.resolver_head_raw = np.zeros(NUM_DOORS, dtype=float)
-        self.resolver_head_calibrated = np.zeros(NUM_DOORS, dtype=float)
-        self.open_limit_switch_engaged = np.full(NUM_LIMIT_SWITCHES, False, dtype=bool)
-        self.close_limit_switch_engaged = np.full(NUM_LIMIT_SWITCHES, True, dtype=bool)
-        self.locking_pins = np.full(
-            NUM_LOCKING_PINS, RadLockingPinState.ENGAGED, dtype=float
+        self.position_actual = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.position_commanded = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.drive_torque_actual = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.drive_torque_commanded = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.drive_current_actual = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.drive_temperature = np.full(RAD_NUM_DOORS, 20.0, dtype=float)
+        self.resolver_head_raw = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.resolver_head_calibrated = np.zeros(RAD_NUM_DOORS, dtype=float)
+        self.open_limit_switch_engaged = np.full(
+            RAD_NUM_LIMIT_SWITCHES, False, dtype=bool
         )
-        self.brakes_engaged = np.full(NUM_DOORS, True, dtype=bool)
+        self.close_limit_switch_engaged = np.full(
+            RAD_NUM_LIMIT_SWITCHES, True, dtype=bool
+        )
+        self.locking_pins = np.full(
+            RAD_NUM_LOCKING_PINS, RadLockingPinState.ENGAGED, dtype=float
+        )
+        self.brakes_engaged = np.full(RAD_NUM_DOORS, True, dtype=bool)
         self.photoelectric_sensor_clear = True
         self.light_curtain_clear = True
         self.power_draw = 0.0

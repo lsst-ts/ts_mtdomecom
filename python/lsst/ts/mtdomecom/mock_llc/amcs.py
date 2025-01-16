@@ -19,13 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = [
-    "AmcsStatus",
-    "PARK_POSITION",
-    "CURRENT_PER_MOTOR_CRAWLING",
-    "CURRENT_PER_MOTOR_MOVING",
-    "NUM_MOTORS",
-]
+__all__ = ["AmcsStatus"]
 
 import logging
 import math
@@ -34,24 +28,18 @@ import numpy as np
 from lsst.ts import utils
 from lsst.ts.xml.enums.MTDome import MotionState, OnOff
 
+from ..constants import (
+    AMCS_CURRENT_PER_MOTOR_CRAWLING,
+    AMCS_CURRENT_PER_MOTOR_MOVING,
+    AMCS_NUM_ENCODERS,
+    AMCS_NUM_MOTOR_TEMPERATURES,
+    AMCS_NUM_MOTORS,
+    AMCS_NUM_RESOLVERS,
+    AMCS_PARK_POSITION,
+)
 from ..enums import InternalMotionState
 from ..llc_configuration_limits.amcs_limits import AmcsLimits
 from .base_mock_llc import DEFAULT_MESSAGES, FAULT_MESSAGES, BaseMockStatus
-
-# The number of motors.
-NUM_MOTORS = 5
-
-_NUM_MOTOR_TEMPERATURES = 13
-_NUM_ENCODERS = 5
-_NUM_RESOLVERS = 3
-
-# Current consumption per motor when moving [A], assuming no acceleration and
-# no wind gust, which is good enough for this simulator, since it ignores both.
-CURRENT_PER_MOTOR_MOVING = 40.0
-# Current consumption per motor when crawling [A].
-CURRENT_PER_MOTOR_CRAWLING = 4.1
-
-PARK_POSITION = 0.0
 
 SET_ZERO_AZ_ALLOWED_STATES = [
     MotionState.PARKED.name,
@@ -137,19 +125,19 @@ class AmcsStatus(BaseMockStatus):
         self.messages = DEFAULT_MESSAGES
         self.fans_speed = 0.0
         self.seal_inflated = OnOff.OFF
-        self.position_actual = PARK_POSITION
-        self.position_commanded = PARK_POSITION
+        self.position_actual = AMCS_PARK_POSITION
+        self.position_commanded = AMCS_PARK_POSITION
         self.velocity_actual = 0.0
         self.velocity_commanded = 0.0
-        self.drive_torque_actual = np.zeros(NUM_MOTORS, dtype=float)
-        self.drive_torque_commanded = np.zeros(NUM_MOTORS, dtype=float)
-        self.drive_current_actual = np.zeros(NUM_MOTORS, dtype=float)
-        self.drive_temperature = np.full(_NUM_MOTOR_TEMPERATURES, 20.0, dtype=float)
-        self.encoder_head_raw = np.zeros(_NUM_ENCODERS, dtype=float)
-        self.encoder_head_calibrated = np.zeros(_NUM_ENCODERS, dtype=float)
-        self.barcode_head_raw = np.zeros(_NUM_RESOLVERS, dtype=float)
-        self.barcode_head_calibrated = np.zeros(_NUM_RESOLVERS, dtype=float)
-        self.barcode_head_weighted = np.zeros(_NUM_RESOLVERS, dtype=float)
+        self.drive_torque_actual = np.zeros(AMCS_NUM_MOTORS, dtype=float)
+        self.drive_torque_commanded = np.zeros(AMCS_NUM_MOTORS, dtype=float)
+        self.drive_current_actual = np.zeros(AMCS_NUM_MOTORS, dtype=float)
+        self.drive_temperature = np.full(AMCS_NUM_MOTOR_TEMPERATURES, 20.0, dtype=float)
+        self.encoder_head_raw = np.zeros(AMCS_NUM_ENCODERS, dtype=float)
+        self.encoder_head_calibrated = np.zeros(AMCS_NUM_ENCODERS, dtype=float)
+        self.barcode_head_raw = np.zeros(AMCS_NUM_RESOLVERS, dtype=float)
+        self.barcode_head_calibrated = np.zeros(AMCS_NUM_RESOLVERS, dtype=float)
+        self.barcode_head_weighted = np.zeros(AMCS_NUM_RESOLVERS, dtype=float)
 
         # State machine related attributes.
         self.current_state = MotionState.PARKED.name
@@ -157,7 +145,7 @@ class AmcsStatus(BaseMockStatus):
         self.target_state = MotionState.PARKED.name
 
         # Error state related attributes.
-        self.drives_in_error_state = [False] * NUM_MOTORS
+        self.drives_in_error_state = [False] * AMCS_NUM_MOTORS
 
     async def evaluate_state(self, current_tai: float) -> None:
         """Evaluate the state and perform a state transition if necessary.
@@ -332,14 +320,14 @@ class AmcsStatus(BaseMockStatus):
         # values are assumed while in reality they vary depending on the speed.
         if self.current_state == MotionState.MOVING.name:
             self.drive_current_actual = np.full(
-                NUM_MOTORS, CURRENT_PER_MOTOR_MOVING, dtype=float
+                AMCS_NUM_MOTORS, AMCS_CURRENT_PER_MOTOR_MOVING, dtype=float
             )
         elif self.current_state == MotionState.CRAWLING.name:
             self.drive_current_actual = np.full(
-                NUM_MOTORS, CURRENT_PER_MOTOR_CRAWLING, dtype=float
+                AMCS_NUM_MOTORS, AMCS_CURRENT_PER_MOTOR_CRAWLING, dtype=float
             )
         else:
-            self.drive_current_actual = np.zeros(NUM_MOTORS, dtype=float)
+            self.drive_current_actual = np.zeros(AMCS_NUM_MOTORS, dtype=float)
         self.llc_status = {
             "status": {
                 "messages": self.messages,
@@ -479,7 +467,7 @@ class AmcsStatus(BaseMockStatus):
         `float`
             The expected duration of the command [s].
         """
-        self.position_commanded = PARK_POSITION
+        self.position_commanded = AMCS_PARK_POSITION
         self.start_position = self.position_actual
         self.crawl_velocity = 0.0
         self.start_tai = start_tai

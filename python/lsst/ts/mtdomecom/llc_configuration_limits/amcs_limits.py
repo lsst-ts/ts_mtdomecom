@@ -21,9 +21,9 @@
 
 __all__ = ["AmcsLimits"]
 
-import math
 import typing
 
+from ..constants import AMCS_AMAX, AMCS_JMAX, AMCS_VMAX
 from ..enums import MaxValuesConfigType
 from .common_amcs_and_lwscs_limits import CommonAmcsAndLwscsLimits
 
@@ -43,14 +43,10 @@ class AmcsLimits(CommonAmcsAndLwscsLimits):
         Maximum velocity, in deg/s
     """
 
-    jmax = math.radians(3.0)  # Maximum jerk in rad/s^3
-    amax = math.radians(0.75)  # Maximum acceleration in rad/s^2
-    vmax = math.radians(1.5)  # Maximum velocity in rad/s
-
     def __init__(self) -> None:
-        self.jmax = AmcsLimits.jmax
-        self.amax = AmcsLimits.amax
-        self.vmax = AmcsLimits.vmax
+        self.jmax = AMCS_JMAX
+        self.amax = AMCS_AMAX
+        self.vmax = AMCS_VMAX
 
     def validate(
         self, configuration_parameters: MaxValuesConfigType
