@@ -21,7 +21,9 @@
 
 from .amcs_status import *
 from .apscs_status import *
+from .cbcs_status import *
 from .command import *
+from .cscs_status import *
 from .lcs_status import *
 from .lwscs_status import *
 from .moncs_status import *

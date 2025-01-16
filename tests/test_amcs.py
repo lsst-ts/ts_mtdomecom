@@ -24,10 +24,10 @@ import unittest
 
 import pytest
 from lsst.ts import mtdomecom
-from lsst.ts.mtdomecom.mock_llc.amcs import (
-    CURRENT_PER_MOTOR_CRAWLING,
-    CURRENT_PER_MOTOR_MOVING,
-    NUM_MOTORS,
+from lsst.ts.mtdomecom.constants import (
+    AMCS_CURRENT_PER_MOTOR_CRAWLING,
+    AMCS_CURRENT_PER_MOTOR_MOVING,
+    AMCS_NUM_MOTORS,
 )
 from lsst.ts.xml.enums.MTDome import MotionState
 from utils_for_tests import ExpectedState
@@ -87,11 +87,11 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             expected_velocity
         )
         assert expected_motion_state.name == self.amcs.llc_status["status"]["status"]
-        expected_drive_current: list[float] = [0.0] * NUM_MOTORS
+        expected_drive_current: list[float] = [0.0] * AMCS_NUM_MOTORS
         if expected_motion_state == MotionState.MOVING:
-            expected_drive_current = [CURRENT_PER_MOTOR_MOVING] * NUM_MOTORS
+            expected_drive_current = [AMCS_CURRENT_PER_MOTOR_MOVING] * AMCS_NUM_MOTORS
         elif expected_motion_state == MotionState.CRAWLING:
-            expected_drive_current = [CURRENT_PER_MOTOR_CRAWLING] * NUM_MOTORS
+            expected_drive_current = [AMCS_CURRENT_PER_MOTOR_CRAWLING] * AMCS_NUM_MOTORS
         assert expected_drive_current == self.amcs.llc_status["driveCurrentActual"]
 
     async def verify_move_duration(

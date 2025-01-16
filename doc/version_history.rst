@@ -6,7 +6,19 @@
 Version History
 ###############
 
-=======
+======
+v0.2.0
+======
+* Enable uploading documentation.
+* Import all schemas.
+* Extract all constants to a constants file.
+
+Requires:
+
+* ts_tcpip
+* ts_utils
+
+======
 v0.1.0
 ======
 

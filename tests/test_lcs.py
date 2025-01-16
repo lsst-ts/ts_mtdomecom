@@ -25,11 +25,6 @@ import unittest
 import numpy as np
 import pytest
 from lsst.ts import mtdomecom
-from lsst.ts.mtdomecom.mock_llc.lcs import (
-    CURRENT_PER_MOTOR,
-    NUM_LOUVERS,
-    NUM_MOTORS_PER_LOUVER,
-)
 from lsst.ts.mtdomecom.power_management.power_draw_constants import LOUVERS_POWER_DRAW
 from lsst.ts.xml.enums.MTDome import MotionState
 
@@ -68,17 +63,21 @@ class LcsTestCase(unittest.IsolatedAsyncioTestCase):
                 assert expected_positions[louver_id] == position_commanded
             else:
                 assert 0 == position_commanded
-        for louver_id in range(NUM_LOUVERS):
+        for louver_id in range(mtdomecom.LCS_NUM_LOUVERS):
             drive_current_actual_motor1 = lcs_status["driveCurrentActual"][
-                louver_id * NUM_MOTORS_PER_LOUVER
+                louver_id * mtdomecom.LCS_NUM_MOTORS_PER_LOUVER
             ]
             drive_current_actual_motor2 = lcs_status["driveCurrentActual"][
-                louver_id * NUM_MOTORS_PER_LOUVER + 1
+                louver_id * mtdomecom.LCS_NUM_MOTORS_PER_LOUVER + 1
             ]
             if louver_id in expected_positions:
                 if lcs_status["status"]["status"][louver_id] == MotionState.MOVING:
-                    assert drive_current_actual_motor1 == CURRENT_PER_MOTOR
-                    assert drive_current_actual_motor2 == CURRENT_PER_MOTOR
+                    assert (
+                        drive_current_actual_motor1 == mtdomecom.LCS_CURRENT_PER_MOTOR
+                    )
+                    assert (
+                        drive_current_actual_motor2 == mtdomecom.LCS_CURRENT_PER_MOTOR
+                    )
                     assert lcs_status["powerDraw"] == LOUVERS_POWER_DRAW
             else:
                 assert drive_current_actual_motor1 == pytest.approx(0.0)
@@ -113,7 +112,7 @@ class LcsTestCase(unittest.IsolatedAsyncioTestCase):
             10: 60.0,
         }
         self.lcs = mtdomecom.mock_llc.LcsStatus()
-        position = np.full(NUM_LOUVERS, -1.0, dtype=float)
+        position = np.full(mtdomecom.LCS_NUM_LOUVERS, -1.0, dtype=float)
         for louver_id in expected_positions:
             position[louver_id] = expected_positions[louver_id]
         await self.lcs.setLouvers(position=position, current_tai=START_TAI)

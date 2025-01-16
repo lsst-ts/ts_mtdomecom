@@ -27,7 +27,6 @@ import typing
 import numpy as np
 import pytest
 from lsst.ts import mtdomecom, tcpip, utils
-from lsst.ts.mtdomecom.mock_llc.apscs import NUM_SHUTTERS
 from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OperationalMode
 
 _CURRENT_TAI = 100001
@@ -697,7 +696,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         target positions are lined up.
 
         """
-        position = np.full(mtdomecom.mock_llc.NUM_LOUVERS, -1.0, dtype=float)
+        position = np.full(mtdomecom.LCS_NUM_LOUVERS, -1.0, dtype=float)
         for index, louver_id in enumerate(louver_ids):
             position[louver_id] = target_positions[index]
         await self.write(
@@ -790,7 +789,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
     async def test_closeLouvers(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
             self.mock_ctrl.lcs.position_actual = np.full(
-                mtdomecom.mock_llc.NUM_LOUVERS, 100.0, dtype=float
+                mtdomecom.LCS_NUM_LOUVERS, 100.0, dtype=float
             )
             await self.write(command=mtdomecom.CommandName.CLOSE_LOUVERS, parameters={})
             self.data = await self.read()
@@ -811,16 +810,10 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             lcs_status = self.data[mtdomecom.LlcName.LCS.value]
             assert (
                 lcs_status["status"]["status"]
-                == [MotionState.ENABLING_MOTOR_POWER.name]
-                * mtdomecom.mock_llc.NUM_LOUVERS
+                == [MotionState.ENABLING_MOTOR_POWER.name] * mtdomecom.LCS_NUM_LOUVERS
             )
-            assert (
-                lcs_status["positionActual"] == [100.0] * mtdomecom.mock_llc.NUM_LOUVERS
-            )
-            assert (
-                lcs_status["positionCommanded"]
-                == [0.0] * mtdomecom.mock_llc.NUM_LOUVERS
-            )
+            assert lcs_status["positionActual"] == [100.0] * mtdomecom.LCS_NUM_LOUVERS
+            assert lcs_status["positionCommanded"] == [0.0] * mtdomecom.LCS_NUM_LOUVERS
 
     async def test_stopLouvers(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -828,7 +821,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.mock_ctrl.lcs.target_state[:] = MotionState.STOPPED.name
             louver_id = 5
             target_position = 100
-            position = np.full(mtdomecom.mock_llc.NUM_LOUVERS, -1.0, dtype=float)
+            position = np.full(mtdomecom.LCS_NUM_LOUVERS, -1.0, dtype=float)
             position[louver_id] = target_position
             await self.write(
                 command=mtdomecom.CommandName.SET_LOUVERS,
@@ -860,14 +853,12 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             lcs_status = self.data[mtdomecom.LlcName.LCS.value]
             assert (
                 lcs_status["status"]["status"]
-                == [MotionState.STOPPED.name] * mtdomecom.mock_llc.NUM_LOUVERS
+                == [MotionState.STOPPED.name] * mtdomecom.LCS_NUM_LOUVERS
             )
-            assert (
-                lcs_status["positionActual"] == [0.0] * mtdomecom.mock_llc.NUM_LOUVERS
-            )
+            assert lcs_status["positionActual"] == [0.0] * mtdomecom.LCS_NUM_LOUVERS
             assert lcs_status["positionCommanded"] == [0.0] * louver_id + [
                 target_position
-            ] + [0.0] * (mtdomecom.mock_llc.NUM_LOUVERS - louver_id - 1)
+            ] + [0.0] * (mtdomecom.LCS_NUM_LOUVERS - louver_id - 1)
 
     async def test_openShutter(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -889,7 +880,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.mock_ctrl.current_tai = self.mock_ctrl.current_tai + 5.0
             self.mock_ctrl.apscs.current_state = [
                 MotionState.OPENING.name
-            ] * NUM_SHUTTERS
+            ] * mtdomecom.APSCS_NUM_SHUTTERS
             await self.validate_apscs(
                 status=MotionState.OPENING,
                 position_actual=[50.0, 50.0],
@@ -1100,8 +1091,8 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.data = await self.read()
             amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
             assert amcs_status["status"]["status"] == MotionState.STOPPED.name
-            assert amcs_status["positionActual"] == mtdomecom.mock_llc.PARK_POSITION
-            assert amcs_status["positionCommanded"] == mtdomecom.mock_llc.PARK_POSITION
+            assert amcs_status["positionActual"] == mtdomecom.AMCS_PARK_POSITION
+            assert amcs_status["positionCommanded"] == mtdomecom.AMCS_PARK_POSITION
 
     async def test_setTemperature(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -1128,8 +1119,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
             assert (
-                thcs_status["temperature"]
-                == [temperature] * mtdomecom.mock_llc.thcs.NUM_THERMO_SENSORS
+                thcs_status["temperature"] == [temperature] * mtdomecom.THCS_NUM_SENSORS
             )
 
     async def test_inflate(self) -> None:
@@ -1214,11 +1204,9 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             lcs_status = self.data[mtdomecom.LlcName.LCS.value]
             assert (
                 lcs_status["status"]["status"]
-                == [MotionState.STOPPED.name] * mtdomecom.mock_llc.NUM_LOUVERS
+                == [MotionState.STOPPED.name] * mtdomecom.LCS_NUM_LOUVERS
             )
-            assert (
-                lcs_status["positionActual"] == [0.0] * mtdomecom.mock_llc.NUM_LOUVERS
-            )
+            assert lcs_status["positionActual"] == [0.0] * mtdomecom.LCS_NUM_LOUVERS
 
             await self.write(command=mtdomecom.CommandName.STATUS_LWSCS, parameters={})
             self.data = await self.read()
@@ -1230,25 +1218,22 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.data = await self.read()
             moncs_status = self.data[mtdomecom.LlcName.MONCS.value]
             assert moncs_status["status"]["status"] == MotionState.CLOSED.name
-            assert moncs_status["data"] == [0.0] * mtdomecom.mock_llc.NUM_MON_SENSORS
+            assert moncs_status["data"] == [0.0] * mtdomecom.MON_NUM_SENSORS
 
             await self.write(command=mtdomecom.CommandName.STATUS_THCS, parameters={})
             self.data = await self.read()
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
-            assert (
-                thcs_status["temperature"]
-                == [0.0] * mtdomecom.mock_llc.NUM_THERMO_SENSORS
-            )
+            assert thcs_status["temperature"] == [0.0] * mtdomecom.THCS_NUM_SENSORS
 
             await self.write(command=mtdomecom.CommandName.STATUS_RAD, parameters={})
             self.data = await self.read()
             rad_status = self.data[mtdomecom.LlcName.RAD.value]
             assert (
                 rad_status["status"]["status"]
-                == [MotionState.CLOSED.name] * mtdomecom.mock_llc.NUM_DOORS
+                == [MotionState.CLOSED.name] * mtdomecom.RAD_NUM_DOORS
             )
-            assert rad_status["positionActual"] == [0.0] * mtdomecom.mock_llc.NUM_DOORS
+            assert rad_status["positionActual"] == [0.0] * mtdomecom.RAD_NUM_DOORS
 
             await self.write(command=mtdomecom.CommandName.STATUS_CSCS, parameters={})
             self.data = await self.read()
@@ -1285,7 +1270,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             drives_in_error = [0, 1, 0, 1]
             expected_drive_error_state = [False, True]
             await self.mock_ctrl.apscs.set_fault(_CURRENT_TAI, drives_in_error)
-            for i in range(NUM_SHUTTERS):
+            for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
                 assert (
                     self.mock_ctrl.apscs.drives_in_error_state[i]
                     == expected_drive_error_state
@@ -1346,7 +1331,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             drives_in_error = [0, 1, 0, 1]
             expected_drive_error_state = [False, True]
             await self.mock_ctrl.apscs.set_fault(_CURRENT_TAI, drives_in_error)
-            for i in range(NUM_SHUTTERS):
+            for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
                 assert (
                     self.mock_ctrl.apscs.drives_in_error_state[i]
                     == expected_drive_error_state
@@ -1363,7 +1348,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             expected_drive_error_state = [False, False]
             reset = [0, 1, 0, 1]
             await self.mock_ctrl.reset_drives_shutter(reset=reset)
-            for i in range(NUM_SHUTTERS):
+            for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
                 assert (
                     self.mock_ctrl.apscs.drives_in_error_state[i]
                     == expected_drive_error_state
@@ -1416,7 +1401,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
     async def test_search_zero_shutter(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
             initial_position_actual = np.full(
-                mtdomecom.mock_llc.NUM_SHUTTERS, 0.0, dtype=float
+                mtdomecom.APSCS_NUM_SHUTTERS, 0.0, dtype=float
             )
             self.mock_ctrl.apscs.position_actual = initial_position_actual
             await self.validate_apscs(
@@ -1431,7 +1416,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert self.data["timeout"] == pytest.approx(0.0)
             await self.validate_apscs(
                 position_actual=np.zeros(
-                    mtdomecom.mock_llc.NUM_SHUTTERS, dtype=float
+                    mtdomecom.APSCS_NUM_SHUTTERS, dtype=float
                 ).tolist(),
             )
 

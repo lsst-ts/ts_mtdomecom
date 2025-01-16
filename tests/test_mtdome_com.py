@@ -113,19 +113,19 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_stop_louvers(self) -> None:
-        for i in range(mtdomecom.mock_llc.NUM_LOUVERS):
+        for i in range(mtdomecom.LCS_NUM_LOUVERS):
             assert (
                 self.mtdomecom_com.mock_ctrl.lcs.target_state[i]
                 != MotionState.STOPPED.name
             )
         await self.mtdomecom_com.stop_louvers(engage_brakes=False)
-        for i in range(mtdomecom.mock_llc.NUM_LOUVERS):
+        for i in range(mtdomecom.LCS_NUM_LOUVERS):
             assert (
                 self.mtdomecom_com.mock_ctrl.lcs.target_state[i]
                 == MotionState.STOPPED.name
             )
         await self.mtdomecom_com.stop_louvers(engage_brakes=True)
-        for i in range(mtdomecom.mock_llc.NUM_LOUVERS):
+        for i in range(mtdomecom.LCS_NUM_LOUVERS):
             assert (
                 self.mtdomecom_com.mock_ctrl.lcs.target_state[i]
                 == mtdomecom.InternalMotionState.STATIONARY.name
@@ -147,22 +147,22 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_set_louvers(self) -> None:
-        exp_position = [10.0, 12.0] + [math.nan] * (mtdomecom.mock_llc.NUM_LOUVERS - 2)
+        exp_position = [10.0, 12.0] + [math.nan] * (mtdomecom.LCS_NUM_LOUVERS - 2)
         await self.mtdomecom_com.set_louvers(position=exp_position)
         for i in range(2):
             assert math.isclose(
                 self.mtdomecom_com.mock_ctrl.lcs.position_commanded[i], exp_position[i]
             )
-        for i in range(mtdomecom.mock_llc.NUM_LOUVERS - 2):
+        for i in range(mtdomecom.LCS_NUM_LOUVERS - 2):
             assert math.isclose(
                 self.mtdomecom_com.mock_ctrl.lcs.position_commanded[i + 2], 0.0
             )
 
     async def test_close_louvers(self) -> None:
         self.mtdomecom_com.mock_ctrl.lcs.position_actual = [10.0, 12.0] + [0.0] * (
-            mtdomecom.mock_llc.NUM_LOUVERS - 2
+            mtdomecom.LCS_NUM_LOUVERS - 2
         )
-        for i in range(mtdomecom.mock_llc.NUM_LOUVERS):
+        for i in range(mtdomecom.LCS_NUM_LOUVERS):
             assert (
                 self.mtdomecom_com.mock_ctrl.lcs.start_state[i]
                 == mtdomecom.InternalMotionState.STATIONARY.name
@@ -173,14 +173,14 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 self.mtdomecom_com.mock_ctrl.lcs.start_state[i]
                 == MotionState.CLOSING.name
             )
-        for i in range(mtdomecom.mock_llc.NUM_LOUVERS - 2):
+        for i in range(mtdomecom.LCS_NUM_LOUVERS - 2):
             assert (
                 self.mtdomecom_com.mock_ctrl.lcs.start_state[i + 2]
                 == mtdomecom.InternalMotionState.STATIONARY.name
             )
 
     async def test_open_shutter(self) -> None:
-        for i in range(mtdomecom.mock_llc.NUM_SHUTTERS):
+        for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
             assert (
                 self.mtdomecom_com.mock_ctrl.apscs.target_state[i]
                 == MotionState.CLOSED.name
@@ -188,17 +188,17 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         await self.mtdomecom_com.open_shutter()
         assert (
             self.mtdomecom_com.mock_ctrl.apscs.target_state
-            == [MotionState.OPEN.name] * mtdomecom.mock_llc.NUM_SHUTTERS
+            == [MotionState.OPEN.name] * mtdomecom.APSCS_NUM_SHUTTERS
         )
 
     async def test_close_shutter(self) -> None:
         self.mtdomecom_com.mock_ctrl.apscs.position_actual = [
             100.0
-        ] * mtdomecom.mock_llc.NUM_SHUTTERS
+        ] * mtdomecom.APSCS_NUM_SHUTTERS
         await self.mtdomecom_com.close_shutter()
         assert (
             self.mtdomecom_com.mock_ctrl.apscs.target_state
-            == [MotionState.CLOSED.name] * mtdomecom.mock_llc.NUM_SHUTTERS
+            == [MotionState.CLOSED.name] * mtdomecom.APSCS_NUM_SHUTTERS
         )
 
     async def test_park(self) -> None:
@@ -251,11 +251,11 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_home(self) -> None:
         self.mtdomecom_com.mock_ctrl.apscs.position_actual = [
             100.0
-        ] * mtdomecom.mock_llc.NUM_SHUTTERS
+        ] * mtdomecom.APSCS_NUM_SHUTTERS
         await self.mtdomecom_com.home(sub_system_ids=SubSystemId.APSCS)
         assert (
             self.mtdomecom_com.mock_ctrl.apscs.target_state
-            == [MotionState.CLOSED.name] * mtdomecom.mock_llc.NUM_SHUTTERS
+            == [MotionState.CLOSED.name] * mtdomecom.APSCS_NUM_SHUTTERS
         )
 
     async def test_config_llcs(self) -> None:
@@ -298,6 +298,6 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         assert (
             status["positionActual"]
             == utils.angle_wrap_nonnegative(
-                mtdomecom.mock_llc.PARK_POSITION - mtdomecom.DOME_AZIMUTH_OFFSET
+                mtdomecom.AMCS_PARK_POSITION - mtdomecom.DOME_AZIMUTH_OFFSET
             ).degree
         )

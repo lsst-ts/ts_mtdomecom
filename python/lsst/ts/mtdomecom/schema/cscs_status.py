@@ -65,7 +65,7 @@ registry["CSCS"] = json.loads(
               "additionalProperties": false
             },
             "status": {
-              "type": "string",
+              "type": "string"
             },
             "operationalMode": {
               "type": "string"

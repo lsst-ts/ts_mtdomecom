@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["LwscsStatus", "CURRENT_PER_MOTOR", "NUM_MOTORS"]
+__all__ = ["LwscsStatus"]
 
 import logging
 import math
@@ -28,18 +28,16 @@ import numpy as np
 from lsst.ts import utils
 from lsst.ts.xml.enums.MTDome import MotionState
 
+from ..constants import (
+    LWSCS_CURRENT_PER_MOTOR,
+    LWSCS_MAX_POSITION,
+    LWSCS_MIN_POSITION,
+    LWSCS_NUM_MOTORS,
+)
 from ..enums import InternalMotionState
 from ..llc_configuration_limits.lwscs_limits import LwscsLimits
 from ..power_management.power_draw_constants import LWS_POWER_DRAW
-from .base_mock_llc import DOME_VOLTAGE, BaseMockStatus
-
-NUM_MOTORS = 2
-
-MIN_POSITION = 0.0
-MAX_POSITION = math.pi / 2.0
-
-# Current drawn per motor by the Light Wind Screen [A].
-CURRENT_PER_MOTOR = LWS_POWER_DRAW / NUM_MOTORS / DOME_VOLTAGE
+from .base_mock_llc import BaseMockStatus
 
 
 def get_distance(start_position: float, end_position: float) -> float:
@@ -122,14 +120,14 @@ class LwscsStatus(BaseMockStatus):
         self.position_commanded = 0.0
         self.velocity_actual = 0.0
         self.velocity_commanded = 0.0
-        self.drive_torque_actual = np.zeros(NUM_MOTORS, dtype=float)
-        self.drive_torque_commanded = np.zeros(NUM_MOTORS, dtype=float)
-        self.drive_current_actual = np.zeros(NUM_MOTORS, dtype=float)
-        self.drive_temperature = np.full(NUM_MOTORS, 20.0, dtype=float)
-        self.encoder_head_raw = np.zeros(NUM_MOTORS, dtype=float)
-        self.encoder_head_calibrated = np.zeros(NUM_MOTORS, dtype=float)
-        self.resolver_raw = np.zeros(NUM_MOTORS, dtype=float)
-        self.resolver_calibrated = np.zeros(NUM_MOTORS, dtype=float)
+        self.drive_torque_actual = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
+        self.drive_torque_commanded = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
+        self.drive_current_actual = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
+        self.drive_temperature = np.full(LWSCS_NUM_MOTORS, 20.0, dtype=float)
+        self.encoder_head_raw = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
+        self.encoder_head_calibrated = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
+        self.resolver_raw = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
+        self.resolver_calibrated = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
         self.power_draw = 0.0
 
         # State machine related attributes.
@@ -197,12 +195,12 @@ class LwscsStatus(BaseMockStatus):
             )
             self.current_state = MotionState.CRAWLING.name
             self.velocity_actual = self.crawl_velocity
-            if self.position_actual >= MAX_POSITION:
-                self.position_actual = MAX_POSITION
+            if self.position_actual >= LWSCS_MAX_POSITION:
+                self.position_actual = LWSCS_MAX_POSITION
                 self.current_state = MotionState.STOPPED.name
                 self.velocity_actual = 0.0
-            elif self.position_actual <= MIN_POSITION:
-                self.position_actual = MIN_POSITION
+            elif self.position_actual <= LWSCS_MIN_POSITION:
+                self.position_actual = LWSCS_MIN_POSITION
                 self.current_state = MotionState.STOPPED.name
                 self.velocity_actual = 0.0
             if math.isclose(self.crawl_velocity, 0.0):
@@ -231,11 +229,11 @@ class LwscsStatus(BaseMockStatus):
         # on the speed and the inclination of the light wind screen.
         if self.current_state in [MotionState.CRAWLING.name, MotionState.MOVING.name]:
             self.drive_current_actual = np.full(
-                NUM_MOTORS, CURRENT_PER_MOTOR, dtype=float
+                LWSCS_NUM_MOTORS, LWSCS_CURRENT_PER_MOTOR, dtype=float
             )
             self.power_draw = LWS_POWER_DRAW
         else:
-            self.drive_current_actual = np.zeros(NUM_MOTORS, dtype=float)
+            self.drive_current_actual = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
             self.power_draw = 0.0
         self.llc_status = {
             "status": {
@@ -278,10 +276,10 @@ class LwscsStatus(BaseMockStatus):
             the real dome, this should be the current time. However, for unit
             tests it can be convenient to use other values.
         """
-        if not (MIN_POSITION <= position <= MAX_POSITION):
+        if not (LWSCS_MIN_POSITION <= position <= LWSCS_MAX_POSITION):
             raise ValueError(
                 f"The target position {position} is outside of the "
-                f"range [{MIN_POSITION, MAX_POSITION}]"
+                f"range [{LWSCS_MIN_POSITION, LWSCS_MAX_POSITION}]"
             )
 
         self.position_commanded = position
