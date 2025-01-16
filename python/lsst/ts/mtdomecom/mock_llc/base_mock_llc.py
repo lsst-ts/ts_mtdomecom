@@ -21,7 +21,6 @@
 
 __all__ = [
     "DEFAULT_MESSAGES",
-    "DOME_VOLTAGE",
     "FAULT_MESSAGES",
     "BaseMockStatus",
 ]
@@ -31,9 +30,6 @@ import typing
 from abc import ABC, abstractmethod
 
 from lsst.ts.xml.enums.MTDome import OperationalMode
-
-# The voltage used in the dome.
-DOME_VOLTAGE = 220.0
 
 # Status messages.
 DEFAULT_MESSAGES = [{"code": 0, "description": "No Errors"}]

@@ -19,17 +19,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["ThcsStatus", "NUM_THERMO_SENSORS"]
+__all__ = ["ThcsStatus"]
 
 import logging
 
 import numpy as np
 from lsst.ts.xml.enums.MTDome import MotionState
 
+from ..constants import THCS_NUM_SENSORS
 from ..enums import InternalMotionState
 from .base_mock_llc import BaseMockStatus
-
-NUM_THERMO_SENSORS = 13
 
 
 class ThcsStatus(BaseMockStatus):
@@ -41,7 +40,7 @@ class ThcsStatus(BaseMockStatus):
         super().__init__()
         self.log = logging.getLogger("MockThcsStatus")
         self.messages = [{"code": 0, "description": "No Errors"}]
-        self.temperature = np.zeros(NUM_THERMO_SENSORS, dtype=float)
+        self.temperature = np.zeros(THCS_NUM_SENSORS, dtype=float)
         self.current_state = MotionState.DISABLED
         self.target_state = MotionState.DISABLED
 

@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["COMMANDS_REPLIED_PERIOD", "DOME_AZIMUTH_OFFSET", "CommandTime", "MTDomeCom"]
+__all__ = ["COMMANDS_REPLIED_PERIOD", "CommandTime", "MTDomeCom"]
 
 import asyncio
 import logging
@@ -37,6 +37,7 @@ from lsst.ts.xml.enums.MTDome import (
     SubSystemId,
 )
 
+from .constants import DOME_AZIMUTH_OFFSET
 from .enums import (
     CommandName,
     LlcName,
@@ -59,11 +60,6 @@ from .power_management import (
 # Timeout [sec] used when creating a Client, a mock controller or when waiting
 # for a reply when sending a command to the controller.
 _TIMEOUT = 20
-
-# The offset of the dome rotation zero point with respect to azimuth 0º (true
-# north) is 32º west and this needs to be added when commanding the azimuth
-# position, or subtracted when sending the azimuth telemetry.
-DOME_AZIMUTH_OFFSET = 32.0
 
 # Polling period [sec] for the task that checks if all commands have been
 # replied to.

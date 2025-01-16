@@ -24,14 +24,6 @@ import unittest
 import numpy as np
 import pytest
 from lsst.ts import mtdomecom
-from lsst.ts.mtdomecom.mock_llc.apscs import (
-    CLOSED_POSITION,
-    CURRENT_PER_MOTOR,
-    NUM_MOTORS_PER_SHUTTER,
-    NUM_SHUTTERS,
-    OPEN_POSITION,
-    SHUTTER_SPEED,
-)
 from lsst.ts.mtdomecom.power_management.power_draw_constants import APS_POWER_DRAW
 from lsst.ts.xml.enums.MTDome import MotionState
 
@@ -55,7 +47,7 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         """
         self.apscs = mtdomecom.mock_llc.ApscsStatus(start_tai=start_tai)
         self.apscs.position_actual = np.asarray([start_position, start_position])
-        self.apscs.current_state = [current_state] * NUM_SHUTTERS
+        self.apscs.current_state = [current_state] * mtdomecom.APSCS_NUM_SHUTTERS
 
     async def verify_apscs(
         self,
@@ -75,19 +67,23 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
             The expected motion state at the given TAI time.
         """
         await self.apscs.determine_status(current_tai=tai)
-        assert [expected_position] * NUM_SHUTTERS == pytest.approx(
+        assert [expected_position] * mtdomecom.APSCS_NUM_SHUTTERS == pytest.approx(
             self.apscs.llc_status["positionActual"], abs=0.001
         )
-        assert [expected_motion_state.name] * NUM_SHUTTERS == self.apscs.llc_status[
-            "status"
-        ]["status"]
+        assert [
+            expected_motion_state.name
+        ] * mtdomecom.APSCS_NUM_SHUTTERS == self.apscs.llc_status["status"]["status"]
         expected_drive_current: list[float] = (
-            [0.0] * NUM_SHUTTERS * NUM_MOTORS_PER_SHUTTER
+            [0.0]
+            * mtdomecom.APSCS_NUM_SHUTTERS
+            * mtdomecom.APSCS_NUM_MOTORS_PER_SHUTTER
         )
         expected_power_draw = 0.0
         if expected_motion_state in [MotionState.OPENING, MotionState.CLOSING]:
             expected_drive_current = (
-                [CURRENT_PER_MOTOR] * NUM_SHUTTERS * NUM_MOTORS_PER_SHUTTER
+                [mtdomecom.APSCS_CURRENT_PER_MOTOR]
+                * mtdomecom.APSCS_NUM_SHUTTERS
+                * mtdomecom.APSCS_NUM_MOTORS_PER_SHUTTER
             )
             expected_power_draw = APS_POWER_DRAW
         assert expected_drive_current == self.apscs.llc_status["driveCurrentActual"]
@@ -95,10 +91,12 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_open_shutter(self) -> None:
         """Test opening the shutter from a closed position."""
-        start_position = CLOSED_POSITION
-        target_position = OPEN_POSITION
+        start_position = mtdomecom.APSCS_CLOSED_POSITION
+        target_position = mtdomecom.APSCS_OPEN_POSITION
         start_tai = START_TAI
-        expected_duration = (target_position - start_position) / SHUTTER_SPEED
+        expected_duration = (
+            target_position - start_position
+        ) / mtdomecom.APSCS_SHUTTER_SPEED
         await self.prepare_apscs(
             start_position=start_position,
             start_tai=start_tai,
@@ -109,21 +107,23 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         for i in range(10):
             await self.verify_apscs(
                 tai=start_tai + i,
-                expected_position=SHUTTER_SPEED * i,
+                expected_position=mtdomecom.APSCS_SHUTTER_SPEED * i,
                 expected_motion_state=MotionState.OPENING,
             )
         await self.verify_apscs(
             tai=start_tai + 10,
-            expected_position=OPEN_POSITION,
+            expected_position=mtdomecom.APSCS_OPEN_POSITION,
             expected_motion_state=MotionState.PROXIMITY_OPEN_LS_ENGAGED,
         )
 
     async def test_close_shutter(self) -> None:
         """Test closing the shutter from a closed position."""
-        start_position = OPEN_POSITION
-        target_position = CLOSED_POSITION
+        start_position = mtdomecom.APSCS_OPEN_POSITION
+        target_position = mtdomecom.APSCS_CLOSED_POSITION
         start_tai = START_TAI
-        expected_duration = -(target_position - start_position) / SHUTTER_SPEED
+        expected_duration = (
+            -(target_position - start_position) / mtdomecom.APSCS_SHUTTER_SPEED
+        )
         await self.prepare_apscs(
             start_position=start_position,
             start_tai=start_tai,
@@ -134,21 +134,24 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         for i in range(10):
             await self.verify_apscs(
                 tai=start_tai + i,
-                expected_position=OPEN_POSITION - SHUTTER_SPEED * i,
+                expected_position=mtdomecom.APSCS_OPEN_POSITION
+                - mtdomecom.APSCS_SHUTTER_SPEED * i,
                 expected_motion_state=MotionState.CLOSING,
             )
         await self.verify_apscs(
             tai=start_tai + 10,
-            expected_position=CLOSED_POSITION,
+            expected_position=mtdomecom.APSCS_CLOSED_POSITION,
             expected_motion_state=MotionState.PROXIMITY_CLOSED_LS_ENGAGED,
         )
 
     async def test_stop_shutter(self) -> None:
         """Test stopping the shutter while moving."""
-        start_position = CLOSED_POSITION
-        target_position = OPEN_POSITION
+        start_position = mtdomecom.APSCS_CLOSED_POSITION
+        target_position = mtdomecom.APSCS_OPEN_POSITION
         start_tai = START_TAI
-        expected_duration = (target_position - start_position) / SHUTTER_SPEED
+        expected_duration = (
+            target_position - start_position
+        ) / mtdomecom.APSCS_SHUTTER_SPEED
         await self.prepare_apscs(
             start_position=start_position,
             start_tai=start_tai,
@@ -159,7 +162,7 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         for i in range(6):
             await self.verify_apscs(
                 tai=start_tai + i,
-                expected_position=SHUTTER_SPEED * i,
+                expected_position=mtdomecom.APSCS_SHUTTER_SPEED * i,
                 expected_motion_state=MotionState.CLOSING,
             )
         await self.apscs.stopShutter(start_tai=start_tai + 7)
@@ -171,10 +174,12 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_go_stationary_shutter(self) -> None:
         """Test setting the shutter to GO_STATIONARY while moving."""
-        start_position = CLOSED_POSITION
-        target_position = OPEN_POSITION
+        start_position = mtdomecom.APSCS_CLOSED_POSITION
+        target_position = mtdomecom.APSCS_OPEN_POSITION
         start_tai = START_TAI
-        expected_duration = (target_position - start_position) / SHUTTER_SPEED
+        expected_duration = (
+            target_position - start_position
+        ) / mtdomecom.APSCS_SHUTTER_SPEED
         await self.prepare_apscs(
             start_position=start_position,
             start_tai=start_tai,
@@ -185,7 +190,7 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         for i in range(6):
             await self.verify_apscs(
                 tai=start_tai + i,
-                expected_position=SHUTTER_SPEED * i,
+                expected_position=mtdomecom.APSCS_SHUTTER_SPEED * i,
                 expected_motion_state=MotionState.CLOSING,
             )
         await self.apscs.go_stationary(start_tai=start_tai + 7)
@@ -197,10 +202,12 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_exit_fault(self) -> None:
         """Test going to and exiting from ERROR state while moving."""
-        start_position = CLOSED_POSITION
-        target_position = OPEN_POSITION
+        start_position = mtdomecom.APSCS_CLOSED_POSITION
+        target_position = mtdomecom.APSCS_OPEN_POSITION
         start_tai = START_TAI
-        expected_duration = (target_position - start_position) / SHUTTER_SPEED
+        expected_duration = (
+            target_position - start_position
+        ) / mtdomecom.APSCS_SHUTTER_SPEED
         await self.prepare_apscs(
             start_position=start_position,
             start_tai=start_tai,
@@ -219,7 +226,7 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         expected_drive_error_state = [False, True]
         current_tai = START_TAI + 1.1
         await self.apscs.set_fault(current_tai, drives_in_error)
-        for shutter_id in range(NUM_SHUTTERS):
+        for shutter_id in range(mtdomecom.APSCS_NUM_SHUTTERS):
             assert (
                 self.apscs.drives_in_error_state[shutter_id]
                 == expected_drive_error_state
@@ -241,7 +248,7 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         expected_drive_error_state = [False, False]
         reset = [0, 1, 0, 1]
         await self.apscs.reset_drives_shutter(current_tai, reset)
-        for shutter_id in range(NUM_SHUTTERS):
+        for shutter_id in range(mtdomecom.APSCS_NUM_SHUTTERS):
             assert (
                 self.apscs.drives_in_error_state[shutter_id]
                 == expected_drive_error_state
@@ -255,7 +262,7 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
             expected_position=11.0,
             expected_motion_state=mtdomecom.InternalMotionState.STATIONARY,
         )
-        for shutter_id in range(NUM_SHUTTERS):
+        for shutter_id in range(mtdomecom.APSCS_NUM_SHUTTERS):
             assert (
                 self.apscs.drives_in_error_state[shutter_id]
                 == expected_drive_error_state
