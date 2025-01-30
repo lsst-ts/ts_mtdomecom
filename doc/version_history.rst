@@ -7,6 +7,16 @@ Version History
 ###############
 
 ======
+v0.2.1
+======
+* Make sure that the MotionState enum always is used as a string instead of an int.
+
+Requires:
+
+* ts_tcpip
+* ts_utils
+
+======
 v0.2.0
 ======
 * Enable uploading documentation.

@@ -39,7 +39,7 @@ class MoncsStatus(BaseMockStatus):
     def __init__(self) -> None:
         super().__init__()
         self.log = logging.getLogger("MockMoncsStatus")
-        self.status = MotionState.CLOSED
+        self.status = MotionState.CLOSED.name
         self.messages = [{"code": 0, "description": "No Errors"}]
         self.data = np.zeros(MON_NUM_SENSORS, dtype=float)
 
@@ -55,7 +55,7 @@ class MoncsStatus(BaseMockStatus):
         self.llc_status = {
             "status": {
                 "messages": self.messages,
-                "status": self.status.name,
+                "status": self.status,
                 "operationalMode": self.operational_mode.name,
             },
             "data": self.data.tolist(),
@@ -65,4 +65,4 @@ class MoncsStatus(BaseMockStatus):
 
     async def exit_fault(self) -> None:
         """Clear the fault state."""
-        self.status = InternalMotionState.STATIONARY
+        self.status = InternalMotionState.STATIONARY.name

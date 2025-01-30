@@ -32,29 +32,29 @@ class ThcsTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_start_and_stop_cooling(self) -> None:
         thcs = mtdomecom.mock_llc.ThcsStatus()
-        assert thcs.current_state == MotionState.DISABLED
-        assert thcs.target_state == MotionState.DISABLED
+        assert thcs.current_state == MotionState.DISABLED.name
+        assert thcs.target_state == MotionState.DISABLED.name
 
         await thcs.start_cooling(current_tai=START_TAI)
-        assert thcs.current_state == MotionState.DISABLED
-        assert thcs.target_state == MotionState.ENABLED
+        assert thcs.current_state == MotionState.DISABLED.name
+        assert thcs.target_state == MotionState.ENABLED.name
 
         await thcs.evaluate_state()
-        assert thcs.current_state == MotionState.ENABLING
-        assert thcs.target_state == MotionState.ENABLED
+        assert thcs.current_state == MotionState.ENABLING.name
+        assert thcs.target_state == MotionState.ENABLED.name
 
         await thcs.evaluate_state()
-        assert thcs.current_state == MotionState.ENABLED
-        assert thcs.target_state == MotionState.ENABLED
+        assert thcs.current_state == MotionState.ENABLED.name
+        assert thcs.target_state == MotionState.ENABLED.name
 
         await thcs.stop_cooling(current_tai=START_TAI)
-        assert thcs.current_state == MotionState.ENABLED
-        assert thcs.target_state == MotionState.DISABLED
+        assert thcs.current_state == MotionState.ENABLED.name
+        assert thcs.target_state == MotionState.DISABLED.name
 
         await thcs.evaluate_state()
-        assert thcs.current_state == MotionState.DISABLING
-        assert thcs.target_state == MotionState.DISABLED
+        assert thcs.current_state == MotionState.DISABLING.name
+        assert thcs.target_state == MotionState.DISABLED.name
 
         await thcs.evaluate_state()
-        assert thcs.current_state == MotionState.DISABLED
-        assert thcs.target_state == MotionState.DISABLED
+        assert thcs.current_state == MotionState.DISABLED.name
+        assert thcs.target_state == MotionState.DISABLED.name
