@@ -114,7 +114,7 @@ class LwscsStatus(BaseMockStatus):
         self.end_tai = 0.0
 
         # Variables holding the status of the mock EL motion
-        self.status = MotionState.STOPPED
+        self.status = MotionState.STOPPED.name
         self.messages = [{"code": 0, "description": "No Errors"}]
         self.position_actual = 0.0
         self.position_commanded = 0.0

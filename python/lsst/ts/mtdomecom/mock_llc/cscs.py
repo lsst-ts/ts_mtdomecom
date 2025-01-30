@@ -48,7 +48,7 @@ class CscsStatus(BaseMockStatus):
         self.log = logging.getLogger("MockCalibrationScreenStatus")
 
         # Variables holding the status of the mock Calibration Screen.
-        self.status = MotionState.STOPPED
+        self.status = MotionState.STOPPED.name
         self.messages = [{"code": 0, "description": "No Errors"}]
         self.position_actual = 0.0
         self.position_commanded = 0.0
