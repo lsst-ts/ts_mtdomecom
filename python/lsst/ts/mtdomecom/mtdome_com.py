@@ -124,7 +124,7 @@ OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING = {
 # in the AMCS status. Note that these keys are shared with LWSCS so they can be
 # added to _KEYS_IN_RADIANS to avoid duplication but this also means that an
 # additional check for the AMCS lower level component needs to be done when
-# applying the offset correction. That is a trade off I can live with.
+# applying the offset correction. That is a trade-off I can live with.
 _AMCS_KEYS_OFFSET = {
     "positionActual",
     "positionCommanded",
@@ -330,7 +330,7 @@ class MTDomeCom:
         """Process the commands in the queue, if there are any.
 
         Depending on the power management state, certain commands take
-        precedence over others. Whether or not a command actually can be issued
+        precedence over others. Whether a command actually can be issued
         depends on the expected power draw for the command and the available
         power for the rotating part of the dome. If a command can be issued
         then it is removed from the queue, otherwise not.
@@ -596,7 +596,7 @@ class MTDomeCom:
 
         Notes
         -----
-        The AMCS expects the the velocity in radians/sec. This method takes
+        The AMCS expects the velocity in radians/sec. This method takes
         care the conversion to radians.
         """
         self.log.debug(f"crawl_az: {velocity=!s}")
@@ -614,7 +614,7 @@ class MTDomeCom:
 
         Notes
         -----
-        The LWSCS expects the the velocity in radians/sec. This method takes
+        The LWSCS expects the velocity in radians/sec. This method takes
         care the conversion to radians.
         """
         self.log.debug(f"crawl_el: {velocity=!s}")
@@ -972,7 +972,7 @@ class MTDomeCom:
     ) -> None:
         """Round the values in the telemetry.
 
-        Whether or not a value is rounded and to how many decimals is defined
+        Whether a value is rounded and to how many decimals is defined
         in the _KEYS_TO_ROUND dict.
 
         Parameters

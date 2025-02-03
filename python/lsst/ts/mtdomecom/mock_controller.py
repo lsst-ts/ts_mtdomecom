@@ -268,7 +268,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         except Exception:
             self.log.exception(f"Command '{data}' failed")
             # Command rejected: a message explaining why needs to be
-            # added at some point but we haven't discussed that yet
+            # added at some point, but we haven't discussed that yet
             # with the vendor.
             response = ResponseCode.INCORRECT_PARAMETERS
             duration = -1
@@ -406,7 +406,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         return await self.amcs.moveAz(position, velocity, self.current_tai)
 
     async def move_el(self, position: float) -> float:
-        """Move the light and wind screen.
+        """Move the light and windscreen.
 
         Parameters
         ----------
@@ -435,7 +435,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         return await self.amcs.stopAz(self.current_tai)
 
     async def stop_el(self) -> float:
-        """Stop all light and wind screen motion.
+        """Stop all light and windscreen motion.
 
         Returns
         -------
@@ -464,7 +464,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         return await self.amcs.crawlAz(velocity, self.current_tai)
 
     async def crawl_el(self, velocity: float) -> float:
-        """Crawl the light and wind screen.
+        """Crawl the light and windscreen.
 
         Parameters
         ----------
@@ -819,7 +819,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
 
 async def main() -> None:
-    """Main method that gets executed in stand alone mode."""
+    """Main method that gets executed in standalone mode."""
     log = logging.getLogger("MockMTDomeController")
     log.info("main method")
     # An arbitrarily chosen port. Nothing special about it.
