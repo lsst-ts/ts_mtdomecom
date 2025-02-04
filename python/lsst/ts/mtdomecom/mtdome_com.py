@@ -675,23 +675,77 @@ class MTDomeCom:
             command=CommandName.SET_TEMPERATURE, temperature=temperature
         )
 
-    async def exit_fault(self) -> None:
-        """Indicate that all hardware errors have been resolved."""
-        # For backward compatibility with XML 12.0, we always send resetDrives
-        # commands.
+    async def exit_fault(self, sub_system_ids: int) -> None:
+        """Indicate that all hardware errors have been resolved.
+
+        Parameters
+        ----------
+        sub_system_ids : `int`
+            Bitmask of the sub-systems to set the operational mode for.
+
+        """
+        self.log.debug(f"WOUTER exit_fault: {sub_system_ids=!s}")
+        for sub_system_id in SubSystemId:
+            if sub_system_id & sub_system_ids:
+                match sub_system_id:
+                    case SubSystemId.AMCS:
+                        await self.exit_fault_az()
+                    case SubSystemId.APSCS:
+                        if (
+                            self.simulation_mode
+                            != ValidSimulationMode.NORMAL_OPERATIONS
+                        ):
+                            await self.exit_fault_shutter()
+                    case SubSystemId.LCS:
+                        await self.exit_fault_louvers()
+                    case SubSystemId.LWSCS:
+                        await self.exit_fault_el()
+                    case SubSystemId.THCS:
+                        await self.exit_fault_thermal()
+                    case _:
+                        self.log.warning(
+                            f"Ignoring reset_drives for sub_system_id={sub_system_id.name}."
+                        )
+
+    async def exit_fault_az(self) -> None:
+        """Indicate that all AMCS hardware errors have been resolved."""
+        # To help the operators minimize the amount of commands to send, we
+        # always send resetDrives commands.
         az_reset = [1, 1, 1, 1, 1]
         self.log.debug(f"reset_drives_az: {az_reset=!s}")
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_AZ, reset=az_reset
         )
-        if self.simulation_mode != ValidSimulationMode.NORMAL_OPERATIONS:
-            aps_reset = [1, 1, 1, 1]
-            self.log.debug(f"reset_drives_shutter: {aps_reset=!s}")
-            await self.write_then_read_reply(
-                command=CommandName.RESET_DRIVES_SHUTTER, reset=aps_reset
-            )
-        self.log.debug("exit_fault")
-        await self.write_then_read_reply(command=CommandName.EXIT_FAULT)
+        self.log.debug("exit_fault_az")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_AZ)
+
+    async def exit_fault_shutter(self) -> None:
+        """Indicate that all ApSCS hardware errors have been resolved."""
+        # To help the operators minimize the amount of commands to send, we
+        # always send resetDrives commands.
+        aps_reset = [1, 1, 1, 1]
+        self.log.debug(f"reset_drives_shutter: {aps_reset=!s}")
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_SHUTTER,
+            reset=aps_reset,
+        )
+        self.log.debug("exit_fault_shutter")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_SHUTTER)
+
+    async def exit_fault_louvers(self) -> None:
+        """Indicate that all LCS hardware errors have been resolved."""
+        self.log.debug("exit_fault_louvers")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
+
+    async def exit_fault_el(self) -> None:
+        """Indicate that all LWSCS hardware errors have been resolved."""
+        self.log.debug("exit_fault_el")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_EL)
+
+    async def exit_fault_thermal(self) -> None:
+        """Indicate that all ThCS hardware errors have been resolved."""
+        self.log.debug("exit_fault_th")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_THERMAL)
 
     async def set_operational_mode(
         self,

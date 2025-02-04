@@ -110,7 +110,11 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.CONFIG: self.config,
             CommandName.CRAWL_AZ: self.crawl_az,
             CommandName.CRAWL_EL: self.crawl_el,
-            CommandName.EXIT_FAULT: self.exit_fault,
+            CommandName.EXIT_FAULT_AZ: self.exit_fault_az,
+            CommandName.EXIT_FAULT_EL: self.exit_fault_el,
+            CommandName.EXIT_FAULT_SHUTTER: self.exit_fault_shutter,
+            CommandName.EXIT_FAULT_LOUVERS: self.exit_fault_louvers,
+            CommandName.EXIT_FAULT_THERMAL: self.exit_fault_thermal,
             CommandName.FANS: self.fans,
             CommandName.GO_STATIONARY_AZ: self.go_stationary_az,
             CommandName.GO_STATIONARY_EL: self.go_stationary_el,
@@ -712,18 +716,28 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.thcs is not None
         await self.thcs.set_temperature(temperature, self.current_tai)
 
-    async def exit_fault(self) -> None:
-        """Exit from fault state."""
+    async def exit_fault_az(self) -> None:
+        """Exit MCS from fault state."""
         assert self.amcs is not None
         await self.amcs.exit_fault(self.current_tai)
+
+    async def exit_fault_shutter(self) -> None:
+        """Exit ApSCS from fault state."""
         assert self.apscs is not None
         await self.apscs.exit_fault(self.current_tai)
+
+    async def exit_fault_el(self) -> None:
+        """Exit LWSCS from fault state."""
         assert self.lcs is not None
         await self.lcs.exit_fault(self.current_tai)
+
+    async def exit_fault_louvers(self) -> None:
+        """Exit LCS from fault state."""
         assert self.lwscs is not None
         await self.lwscs.exit_fault(self.current_tai)
-        assert self.moncs is not None
-        await self.moncs.exit_fault()
+
+    async def exit_fault_thermal(self) -> None:
+        """Exit ThCS from fault state."""
         assert self.thcs is not None
         await self.thcs.exit_fault()
 

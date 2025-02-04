@@ -80,7 +80,11 @@ registry["command"] = json.loads(
         "statusMonCS",
         "statusRAD",
         "statusThCS",
-        "exitFault",
+        "exitFaultAz",
+        "exitFaultEl",
+        "exitFaultShutter",
+        "exitFaultLouvers",
+        "exitFaultThermal",
         "resetDrivesAz",
         "setZeroAz",
         "resetDrivesShutter",
@@ -889,7 +893,58 @@ registry["command"] = json.loads(
       "if": {
         "properties": {
           "command": {
-            "const": "exitFault"
+            "const": "exitFaultAz"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "exitFaultEl"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "exitFaultShutter"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
+            "const": "exitFaultLouvers"
           }
         }
       },

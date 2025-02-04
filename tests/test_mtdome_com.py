@@ -214,7 +214,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_exit_fault(self) -> None:
         self.mtdomecom_com.mock_ctrl.amcs.drives_in_error_state[0] = True
         self.mtdomecom_com.mock_ctrl.amcs.current_state = MotionState.ERROR.name
-        await self.mtdomecom_com.exit_fault()
+        await self.mtdomecom_com.exit_fault(sub_system_ids=SubSystemId.AMCS)
         assert not self.mtdomecom_com.mock_ctrl.amcs.drives_in_error_state[0]
         assert (
             self.mtdomecom_com.mock_ctrl.amcs.current_state
