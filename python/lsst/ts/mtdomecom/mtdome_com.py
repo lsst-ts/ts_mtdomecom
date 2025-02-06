@@ -120,11 +120,17 @@ OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING = {
     },
 }
 
+_KEYS_TO_REMOVE = {
+    "status",
+    "operationalMode",  # Remove because gets emitted as an event
+    "appliedConfiguration",  # Remove because gets emitted as an event
+}
+
 # The values of these keys need to be compensated for the dome azimuth offset
 # in the AMCS status. Note that these keys are shared with LWSCS so they can be
 # added to _KEYS_IN_RADIANS to avoid duplication but this also means that an
 # additional check for the AMCS lower level component needs to be done when
-# applying the offset correction. That is a trade off I can live with.
+# applying the offset correction. That is a trade-off I can live with.
 _AMCS_KEYS_OFFSET = {
     "positionActual",
     "positionCommanded",
@@ -141,6 +147,21 @@ _KEYS_TO_ROUND = {
         "positionActual": 2,
     }
 }
+
+# Polling periods [sec] for the lower level components.
+_AMCS_STATUS_PERIOD = 0.2
+_APSCS_STATUS_PERIOD = 0.5
+_CBCS_STATUS_PERIOD = 0.5
+_CSCS_STATUS_PERIOD = 0.5
+_LCS_STATUS_PERIOD = 0.5
+_LWSCS_STATUS_PERIOD = 0.5
+_MONCS_STATUS_PERIOD = 0.5
+_RAD_STATUS_PERIOD = 0.5
+_THCS_STATUS_PERIOD = 0.5
+
+# Polling period [sec] for the task that checks if any commands are waiting to
+# be issued.
+_COMMAND_QUEUE_PERIOD = 1.0
 
 
 @dataclass
@@ -171,27 +192,52 @@ class MTDomeCom:
         The configuration to use. This should contain the host name and port to
         connect to.
     simulation_mode : `ValidSimulationMode`
-        The simulatoin mode to use. Defaults to `NORMAL_OPERATIONS`.
+        The simulation mode to use. Defaults to `NORMAL_OPERATIONS`.
+    telemetry_callbacks
+        List of telemetry callback coroutines to use. Defaults to `None`.
     """
 
     _index_iter = utils.index_generator()
+
+    # All status methods and the intervals at which they are executed.
+    # TODO Some status methods don't work with the simulator.
+    status_methods_and_intervals = {
+        LlcName.AMCS: (CommandName.STATUS_AMCS, _AMCS_STATUS_PERIOD),
+        LlcName.APSCS: (CommandName.STATUS_APSCS, _APSCS_STATUS_PERIOD),
+        LlcName.CBCS: (CommandName.STATUS_CBCS, _CBCS_STATUS_PERIOD),
+        LlcName.CSCS: (CommandName.STATUS_CSCS, _CSCS_STATUS_PERIOD),
+        LlcName.LCS: (CommandName.STATUS_LCS, _LCS_STATUS_PERIOD),
+        LlcName.LWSCS: (CommandName.STATUS_LWSCS, _LWSCS_STATUS_PERIOD),
+        LlcName.MONCS: (CommandName.STATUS_MONCS, _MONCS_STATUS_PERIOD),
+        LlcName.RAD: (CommandName.STATUS_RAD, _RAD_STATUS_PERIOD),
+        LlcName.THCS: (CommandName.STATUS_THCS, _THCS_STATUS_PERIOD),
+    }
 
     def __init__(
         self,
         log: logging.Logger,
         config: SimpleNamespace,
         simulation_mode: ValidSimulationMode = ValidSimulationMode.NORMAL_OPERATIONS,
+        telemetry_callbacks: (
+            dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None
+        ) = None,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
         self.config = config
         self.simulation_mode = simulation_mode
 
+        # Initialize telemetry_callbacks to a empty dict if None.
+        self.telemetry_callbacks = telemetry_callbacks or {}
+
         # Mock controller, or None if not constructed
         self.mock_ctrl: MockMTDomeController | None = None
 
         # Keep the lower level statuses in memory for unit tests.
-        self.lower_level_status: dict[str, typing.Any] = {}
+        self.lower_level_status: dict[LlcName, typing.Any] = {}
+
+        # List of periodic tasks to start.
+        self.periodic_tasks: list[asyncio.Future] = []
 
         # Keep a lock so only one remote command can be executed at a time.
         self.communication_lock = asyncio.Lock()
@@ -233,6 +279,10 @@ class MTDomeCom:
         )
 
         self.log.info("DomeCsc constructed.")
+
+    @property
+    def connected(self) -> bool:
+        return self.client is not None and self.client.connected
 
     async def connect(self) -> None:
         """Connect to the dome controller's TCP/IP port.
@@ -282,6 +332,67 @@ class MTDomeCom:
         if self.simulation_mode == ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER:
             await self._stop_mock_ctrl()
 
+    async def start_periodic_tasks(self) -> None:
+        """Start all periodic tasks."""
+        await self.cancel_periodic_tasks()
+
+        for llc_name, (method, interval) in self.status_methods_and_intervals.items():
+            # Only request the LLC status if the corresponding callback exists.
+            # This is necessary because some telemetry commands time out and
+            # slow down operating the dome. The corresponding callbacks should
+            # not have been included.
+            if llc_name in self.telemetry_callbacks:
+                func = getattr(self, method)
+                self.periodic_tasks.append(
+                    asyncio.create_task(self.one_periodic_task(func, interval))
+                )
+
+        self.periodic_tasks.append(
+            asyncio.create_task(
+                self.one_periodic_task(
+                    self.check_all_commands_have_replies, COMMANDS_REPLIED_PERIOD
+                )
+            )
+        )
+
+        self.periodic_tasks.append(
+            asyncio.create_task(
+                self.one_periodic_task(
+                    self.process_command_queue, _COMMAND_QUEUE_PERIOD
+                )
+            )
+        )
+
+    async def one_periodic_task(self, method: typing.Callable, interval: float) -> None:
+        """Run one method forever at the specified interval.
+
+        Parameters
+        ----------
+        method : `typing.Callable`
+            The periodic method to run.
+        interval : `float`
+            The interval (sec) at which to run the status method.
+
+        """
+        self.log.debug(f"Starting periodic task {method=} with {interval=}")
+        try:
+            while True:
+                await method()
+                await asyncio.sleep(interval)
+        except asyncio.CancelledError:
+            # Ignore because the task was canceled on purpose.
+            pass
+        except Exception as e:
+            self.log.exception(f"one_periodic_task({method}) has stopped.")
+            raise e
+
+    async def cancel_periodic_tasks(self) -> None:
+        """Cancel all periodic tasks."""
+        while self.periodic_tasks:
+            periodic_task = self.periodic_tasks.pop()
+            periodic_task.cancel()
+            await periodic_task
+
     async def _start_mock_ctrl(self) -> None:
         """Start the mock controller.
 
@@ -330,7 +441,7 @@ class MTDomeCom:
         """Process the commands in the queue, if there are any.
 
         Depending on the power management state, certain commands take
-        precedence over others. Whether or not a command actually can be issued
+        precedence over others. Whether a command actually can be issued
         depends on the expected power draw for the command and the available
         power for the rotating part of the dome. If a command can be issued
         then it is removed from the queue, otherwise not.
@@ -596,7 +707,7 @@ class MTDomeCom:
 
         Notes
         -----
-        The AMCS expects the the velocity in radians/sec. This method takes
+        The AMCS expects the velocity in radians/sec. This method takes
         care the conversion to radians.
         """
         self.log.debug(f"crawl_az: {velocity=!s}")
@@ -614,7 +725,7 @@ class MTDomeCom:
 
         Notes
         -----
-        The LWSCS expects the the velocity in radians/sec. This method takes
+        The LWSCS expects the velocity in radians/sec. This method takes
         care the conversion to radians.
         """
         self.log.debug(f"crawl_el: {velocity=!s}")
@@ -675,23 +786,77 @@ class MTDomeCom:
             command=CommandName.SET_TEMPERATURE, temperature=temperature
         )
 
-    async def exit_fault(self) -> None:
-        """Indicate that all hardware errors have been resolved."""
-        # For backward compatibility with XML 12.0, we always send resetDrives
-        # commands.
+    async def exit_fault(self, sub_system_ids: int) -> None:
+        """Indicate that all hardware errors have been resolved.
+
+        Parameters
+        ----------
+        sub_system_ids : `int`
+            Bitmask of the sub-systems to set the operational mode for.
+
+        """
+        self.log.debug(f"WOUTER exit_fault: {sub_system_ids=!s}")
+        for sub_system_id in SubSystemId:
+            if sub_system_id & sub_system_ids:
+                match sub_system_id:
+                    case SubSystemId.AMCS:
+                        await self.exit_fault_az()
+                    case SubSystemId.APSCS:
+                        if (
+                            self.simulation_mode
+                            != ValidSimulationMode.NORMAL_OPERATIONS
+                        ):
+                            await self.exit_fault_shutter()
+                    case SubSystemId.LCS:
+                        await self.exit_fault_louvers()
+                    case SubSystemId.LWSCS:
+                        await self.exit_fault_el()
+                    case SubSystemId.THCS:
+                        await self.exit_fault_thermal()
+                    case _:
+                        self.log.warning(
+                            f"Ignoring reset_drives for sub_system_id={sub_system_id.name}."
+                        )
+
+    async def exit_fault_az(self) -> None:
+        """Indicate that all AMCS hardware errors have been resolved."""
+        # To help the operators minimize the amount of commands to send, we
+        # always send resetDrives commands.
         az_reset = [1, 1, 1, 1, 1]
         self.log.debug(f"reset_drives_az: {az_reset=!s}")
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_AZ, reset=az_reset
         )
-        if self.simulation_mode != ValidSimulationMode.NORMAL_OPERATIONS:
-            aps_reset = [1, 1, 1, 1]
-            self.log.debug(f"reset_drives_shutter: {aps_reset=!s}")
-            await self.write_then_read_reply(
-                command=CommandName.RESET_DRIVES_SHUTTER, reset=aps_reset
-            )
-        self.log.debug("exit_fault")
-        await self.write_then_read_reply(command=CommandName.EXIT_FAULT)
+        self.log.debug("exit_fault_az")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_AZ)
+
+    async def exit_fault_shutter(self) -> None:
+        """Indicate that all ApSCS hardware errors have been resolved."""
+        # To help the operators minimize the amount of commands to send, we
+        # always send resetDrives commands.
+        aps_reset = [1, 1, 1, 1]
+        self.log.debug(f"reset_drives_shutter: {aps_reset=!s}")
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_SHUTTER,
+            reset=aps_reset,
+        )
+        self.log.debug("exit_fault_shutter")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_SHUTTER)
+
+    async def exit_fault_louvers(self) -> None:
+        """Indicate that all LCS hardware errors have been resolved."""
+        self.log.debug("exit_fault_louvers")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
+
+    async def exit_fault_el(self) -> None:
+        """Indicate that all LWSCS hardware errors have been resolved."""
+        self.log.debug("exit_fault_el")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_EL)
+
+    async def exit_fault_thermal(self) -> None:
+        """Indicate that all ThCS hardware errors have been resolved."""
+        self.log.debug("exit_fault_th")
+        await self.write_then_read_reply(command=CommandName.EXIT_FAULT_THERMAL)
 
     async def set_operational_mode(
         self,
@@ -879,7 +1044,43 @@ class MTDomeCom:
             motion_state = motion_state_translations[state]
         return motion_state
 
-    async def request_llc_status(self, llc_name: LlcName) -> dict[str, typing.Any]:
+    async def status_amcs(self) -> None:
+        """AMCS status command."""
+        await self.request_llc_status(LlcName.AMCS)
+
+    async def status_apscs(self) -> None:
+        """ApSCS status command."""
+        await self.request_llc_status(LlcName.APSCS)
+
+    async def status_cbcs(self) -> None:
+        """CBCS status command."""
+        await self.request_llc_status(LlcName.CBCS)
+
+    async def status_cscs(self) -> None:
+        """CSCS status command."""
+        await self.request_llc_status(LlcName.CSCS)
+
+    async def status_lcs(self) -> None:
+        """LCS status command."""
+        await self.request_llc_status(LlcName.LCS)
+
+    async def status_lwscs(self) -> None:
+        """LWSCS status command."""
+        await self.request_llc_status(LlcName.LWSCS)
+
+    async def status_moncs(self) -> None:
+        """MonCS status command."""
+        await self.request_llc_status(LlcName.MONCS)
+
+    async def status_rad(self) -> None:
+        """RAD status command."""
+        await self.request_llc_status(LlcName.RAD)
+
+    async def status_thcs(self) -> None:
+        """ThCS status command."""
+        await self.request_llc_status(LlcName.THCS)
+
+    async def request_llc_status(self, llc_name: LlcName) -> None:
         """Generic method for retrieving the status of a lower level component.
 
         The status also is pre_processed, meaning prepared for further
@@ -889,11 +1090,6 @@ class MTDomeCom:
         ----------
         llc_name: `LlcName`
             The name of the lower level component.
-
-        Returns
-        -------
-        dict[str, typing.Any]
-            The status of the lower level component.
 
         Raises
         ------
@@ -912,11 +1108,22 @@ class MTDomeCom:
 
         llc_status = status[llc_name]
 
-        # Store the status for reference.
-        self.lower_level_status[llc_name] = llc_status
-
         pre_processed_status = await self._pre_process_status(llc_name, llc_status)
-        return pre_processed_status
+
+        # Remove some keys because they are not reported in the telemetry.
+        pre_processed_telemetry = self._remove_keys_from_dict(pre_processed_status)
+
+        # # The timestamp is irrelevant for capacitor banks status.
+        if llc_name == LlcName.CBCS and "timestamp" in pre_processed_telemetry:
+            del pre_processed_telemetry["timestamp"]
+
+        # Store the status for reference.
+        self.lower_level_status[llc_name] = pre_processed_telemetry
+
+        # Assume that the corresponding callback exists. The check for that is
+        # in start_periodic_tasks where the telemetry task is scheduled.
+        cb = self.telemetry_callbacks[llc_name]
+        await cb(pre_processed_telemetry)  # type: ignore
 
     async def _pre_process_status(
         self, llc_name: str, llc_status: dict[str, typing.Any]
@@ -972,7 +1179,7 @@ class MTDomeCom:
     ) -> None:
         """Round the values in the telemetry.
 
-        Whether or not a value is rounded and to how many decimals is defined
+        Whether a value is rounded and to how many decimals is defined
         in the _KEYS_TO_ROUND dict.
 
         Parameters
@@ -1022,6 +1229,26 @@ class MTDomeCom:
         for command_id in commands_to_remove:
             self.commands_without_reply.pop(command_id)
 
-    @property
-    def connected(self) -> bool:
-        return self.client is not None and self.client.connected
+    def _remove_keys_from_dict(
+        self, dict_with_too_many_keys: dict[str, typing.Any]
+    ) -> dict[str, typing.Any]:
+        """
+        Return a copy of a dict with specified items removed.
+
+        Parameters
+        ----------
+        dict_with_too_many_keys : `dict`
+            The dict where to remove the keys from.
+
+        Returns
+        -------
+        dict_with_keys_removed : `dict`
+            A dict with the same keys as the given dict but with the given keys
+            removed.
+        """
+        dict_with_keys_removed = {
+            x: dict_with_too_many_keys[x]
+            for x in dict_with_too_many_keys
+            if x not in _KEYS_TO_REMOVE
+        }
+        return dict_with_keys_removed

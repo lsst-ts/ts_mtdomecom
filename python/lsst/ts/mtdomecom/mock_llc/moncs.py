@@ -27,7 +27,6 @@ import numpy as np
 from lsst.ts.xml.enums.MTDome import MotionState
 
 from ..constants import MON_NUM_SENSORS
-from ..enums import InternalMotionState
 from .base_mock_llc import BaseMockStatus
 
 
@@ -62,7 +61,3 @@ class MoncsStatus(BaseMockStatus):
             "timestampUTC": current_tai,
         }
         self.log.debug(f"moncs_state = {self.llc_status}")
-
-    async def exit_fault(self) -> None:
-        """Clear the fault state."""
-        self.status = InternalMotionState.STATIONARY.name

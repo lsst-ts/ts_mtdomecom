@@ -38,7 +38,7 @@ class CbcsStatus(BaseMockStatus):
 
         # Variables holding the status of the mock Capacitor Banks.
         self.messages = DEFAULT_MESSAGES
-        self.fuse_intervention = np.zeros(CBCS_NUM_CAPACITOR_BANKS, dtype=float)
+        self.fuse_intervention = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)
         self.smoke_detected = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)
         self.high_temperature = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)
         self.low_residual_voltage = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)

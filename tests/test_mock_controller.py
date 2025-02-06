@@ -1305,7 +1305,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
             # Now call exit_fault. This will fail because there still are
             # drives at fault.
-            await self.write(command=mtdomecom.CommandName.EXIT_FAULT, parameters={})
+            await self.write(command=mtdomecom.CommandName.EXIT_FAULT_AZ, parameters={})
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.INCORRECT_PARAMETERS
             assert self.data["timeout"] == -1
@@ -1319,7 +1319,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
             # Now call exit_fault which will not fail because the drives have
             # been reset.
-            await self.mock_ctrl.exit_fault()
+            await self.mock_ctrl.exit_fault_az()
             await self.verify_amcs_move(
                 0.0, mtdomecom.InternalMotionState.STATIONARY, math.radians(2.40)
             )
@@ -1340,7 +1340,9 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
             # Now call exit_fault. This will fail because there still are
             # drives at fault.
-            await self.write(command=mtdomecom.CommandName.EXIT_FAULT, parameters={})
+            await self.write(
+                command=mtdomecom.CommandName.EXIT_FAULT_SHUTTER, parameters={}
+            )
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.INCORRECT_PARAMETERS
             assert self.data["timeout"] == -1
@@ -1356,7 +1358,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
             # Now call exit_fault which will not fail because the drives have
             # been reset.
-            await self.mock_ctrl.exit_fault()
+            await self.mock_ctrl.exit_fault_shutter()
             await self.validate_apscs(status=mtdomecom.InternalMotionState.STATIONARY)
 
     async def test_set_zero_az(self) -> None:
