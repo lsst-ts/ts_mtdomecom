@@ -717,7 +717,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         await self.thcs.set_temperature(temperature, self.current_tai)
 
     async def exit_fault_az(self) -> None:
-        """Exit MCS from fault state."""
+        """Exit AMCS from fault state."""
         assert self.amcs is not None
         await self.amcs.exit_fault(self.current_tai)
 
