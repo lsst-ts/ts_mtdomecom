@@ -10,6 +10,10 @@ Version History
 v0.2.1
 ======
 * Make sure that the MotionState enum always is used as a string instead of an int.
+* Make sure that the capacitor banks telemetry has the correct data types.
+* Spelling and punctuation corrections.
+* Split up exitFault to one command per subsystem.
+* Add infrastructure to request subsystem statuses regularly.
 
 Requires:
 
