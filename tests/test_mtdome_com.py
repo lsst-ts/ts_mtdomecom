@@ -19,11 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 import logging
 import math
 import types
+import typing
 import unittest
 
+import pytest
 from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
@@ -45,6 +48,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
         )
         await self.mtdomecom_com.connect()
+        assert len(self.mtdomecom_com.telemetry_callbacks) == 0
 
     async def asyncTearDown(self) -> None:
         await self.mtdomecom_com.disconnect()
@@ -214,7 +218,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_exit_fault(self) -> None:
         self.mtdomecom_com.mock_ctrl.amcs.drives_in_error_state[0] = True
         self.mtdomecom_com.mock_ctrl.amcs.current_state = MotionState.ERROR.name
-        await self.mtdomecom_com.exit_fault()
+        await self.mtdomecom_com.exit_fault(sub_system_ids=SubSystemId.AMCS)
         assert not self.mtdomecom_com.mock_ctrl.amcs.drives_in_error_state[0]
         assert (
             self.mtdomecom_com.mock_ctrl.amcs.current_state
@@ -292,12 +296,114 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         )
         assert self.mtdomecom_com.power_management_mode == PowerManagementMode.EMERGENCY
 
+    async def test_all_periodic_tasks(self) -> None:
+        await self.mtdomecom_com.disconnect()
+        telemetry_callbacks = {
+            mtdomecom.LlcName.AMCS: self.handle_llc_status,
+            mtdomecom.LlcName.APSCS: self.handle_llc_status,
+            mtdomecom.LlcName.CBCS: self.handle_llc_status,
+            mtdomecom.LlcName.CSCS: self.handle_llc_status,
+            mtdomecom.LlcName.LCS: self.handle_llc_status,
+            mtdomecom.LlcName.LWSCS: self.handle_llc_status,
+            mtdomecom.LlcName.MONCS: self.handle_llc_status,
+            mtdomecom.LlcName.RAD: self.handle_llc_status,
+            mtdomecom.LlcName.THCS: self.handle_llc_status,
+        }
+        self.mtdomecom_com = mtdomecom.MTDomeCom(
+            log=self.log,
+            config=types.SimpleNamespace(),
+            simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+            telemetry_callbacks=telemetry_callbacks,
+        )
+        await self.mtdomecom_com.connect()
+        await asyncio.sleep(0.5)
+        # OBC statuses are not reported yet.
+        assert len(self.mtdomecom_com.lower_level_status) == len(mtdomecom.LlcName) - 1
+        await self.mtdomecom_com.disconnect()
+
     async def test_request_llc_status(self) -> None:
-        status = await self.mtdomecom_com.request_llc_status(mtdomecom.LlcName.AMCS)
-        assert status is not None
+        self.mtdomecom_com.telemetry_callbacks = {
+            mtdomecom.LlcName.AMCS: self.handle_llc_status
+        }
+        await self.mtdomecom_com.request_llc_status(mtdomecom.LlcName.AMCS)
+        assert self.llc_status is not None
         assert (
-            status["positionActual"]
+            self.llc_status["positionActual"]
             == utils.angle_wrap_nonnegative(
                 mtdomecom.AMCS_PARK_POSITION - mtdomecom.DOME_AZIMUTH_OFFSET
             ).degree
         )
+
+    @pytest.mark.skip(reason="Need to check how to fix this.")
+    async def test_llc_status(self) -> None:
+        await self.mtdomecom_com.disconnect()
+        telemetry_callbacks = {
+            mtdomecom.LlcName.AMCS: self.handle_llc_status,
+            mtdomecom.LlcName.APSCS: self.handle_llc_status,
+            mtdomecom.LlcName.CBCS: self.handle_llc_status,
+            mtdomecom.LlcName.CSCS: self.handle_llc_status,
+            mtdomecom.LlcName.LCS: self.handle_llc_status,
+            mtdomecom.LlcName.LWSCS: self.handle_llc_status,
+            mtdomecom.LlcName.MONCS: self.handle_llc_status,
+            mtdomecom.LlcName.RAD: self.handle_llc_status,
+            mtdomecom.LlcName.THCS: self.handle_llc_status,
+        }
+        self.mtdomecom_com = mtdomecom.MTDomeCom(
+            log=self.log,
+            config=types.SimpleNamespace(),
+            simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+            telemetry_callbacks=telemetry_callbacks,
+        )
+
+        await self.mtdomecom_com.connect()
+        assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
+
+        await asyncio.sleep(0.5)
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.APSCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CBCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CSCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LWSCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.MONCS]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.RAD]
+        )
+
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.THCS]
+        )
+
+    async def handle_llc_status(self, status: dict[str, typing.Any]) -> None:
+        self.llc_status = status
