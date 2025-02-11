@@ -41,22 +41,22 @@ class ThcsStatus(BaseMockStatus):
         self.log = logging.getLogger("MockThcsStatus")
         self.messages = [{"code": 0, "description": "No Errors"}]
         self.temperature = np.zeros(THCS_NUM_SENSORS, dtype=float)
-        self.current_state = MotionState.DISABLED
-        self.target_state = MotionState.DISABLED
+        self.current_state = MotionState.DISABLED.name
+        self.target_state = MotionState.DISABLED.name
 
     async def evaluate_state(self) -> None:
         """Evaluate the state and perform a state transition if necessary."""
         match self.target_state:
-            case MotionState.ENABLED:
-                if self.current_state == MotionState.DISABLED:
-                    self.current_state = MotionState.ENABLING
-                elif self.current_state == MotionState.ENABLING:
-                    self.current_state = MotionState.ENABLED
-            case MotionState.DISABLED:
-                if self.current_state == MotionState.ENABLED:
-                    self.current_state = MotionState.DISABLING
-                elif self.current_state == MotionState.DISABLING:
-                    self.current_state = MotionState.DISABLED
+            case MotionState.ENABLED.name:
+                if self.current_state == MotionState.DISABLED.name:
+                    self.current_state = MotionState.ENABLING.name
+                elif self.current_state == MotionState.ENABLING.name:
+                    self.current_state = MotionState.ENABLED.name
+            case MotionState.DISABLED.name:
+                if self.current_state == MotionState.ENABLED.name:
+                    self.current_state = MotionState.DISABLING.name
+                elif self.current_state == MotionState.DISABLING.name:
+                    self.current_state = MotionState.DISABLED.name
             case _:
                 # Not a valid state, so empty.
                 pass
@@ -69,7 +69,7 @@ class ThcsStatus(BaseMockStatus):
         self.llc_status = {
             "status": {
                 "messages": self.messages,
-                "status": self.current_state.name,
+                "status": self.current_state,
                 "operationalMode": self.operational_mode.name,
             },
             "temperature": self.temperature.tolist(),
@@ -101,7 +101,7 @@ class ThcsStatus(BaseMockStatus):
             The current time, in UNIX TAI seconds.
         """
         self.command_time_tai = current_tai
-        self.target_state = MotionState.ENABLED
+        self.target_state = MotionState.ENABLED.name
 
     async def stop_cooling(self, current_tai: float) -> None:
         """Stop cooling.
@@ -112,8 +112,8 @@ class ThcsStatus(BaseMockStatus):
             The current time, in UNIX TAI seconds.
         """
         self.command_time_tai = current_tai
-        self.target_state = MotionState.DISABLED
+        self.target_state = MotionState.DISABLED.name
 
     async def exit_fault(self) -> None:
         """Clear the fault state."""
-        self.current_state = InternalMotionState.STATIONARY
+        self.current_state = InternalMotionState.STATIONARY.name

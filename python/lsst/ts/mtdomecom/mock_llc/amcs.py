@@ -288,7 +288,7 @@ class AmcsStatus(BaseMockStatus):
             MotionState.PARKED.name,
             InternalMotionState.STATIONARY.name,
         ]:
-            self.current_state = MotionState.ENGAGING_BRAKES
+            self.current_state = MotionState.ENGAGING_BRAKES.name
         elif self.target_state == MotionState.STOPPED.name:
             self.current_state = MotionState.STOPPED.name
             await self._handle_moving_or_crawling(current_tai)
