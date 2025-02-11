@@ -14,6 +14,7 @@ v0.2.1
 * Spelling and punctuation corrections.
 * Split up exitFault to one command per subsystem.
 * Add infrastructure to request subsystem statuses regularly.
+* Fix race condition in telemetry code.
 
 Requires:
 

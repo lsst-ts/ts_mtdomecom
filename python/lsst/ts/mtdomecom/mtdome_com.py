@@ -194,6 +194,9 @@ class MTDomeCom:
         The simulation mode to use. Defaults to `NORMAL_OPERATIONS`.
     telemetry_callbacks : `dict`[`LlcName`, `typing.Callable`]
         List of telemetry callback coroutines to use. Defaults to `None`.
+    start_periodic_tasks : `bool`
+        Start the periodic tasks or not. Defaults to `True`. Unit tests may set
+        this to `False`.
     """
 
     _index_iter = utils.index_generator()
@@ -206,11 +209,13 @@ class MTDomeCom:
         telemetry_callbacks: (
             dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None
         ) = None,
+        start_periodic_tasks: bool = True,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
         self.config = config
         self.simulation_mode = simulation_mode
+        self.start_periodic_tasks = start_periodic_tasks
 
         # Initialize telemetry_callbacks to an empty dict if None.
         self.telemetry_callbacks = telemetry_callbacks or {}
@@ -263,7 +268,7 @@ class MTDomeCom:
             self.log, command_priorities
         )
 
-        self.log.info("DomeCsc constructed.")
+        self.log.info("MTDomeCom constructed.")
 
     @property
     def connected(self) -> bool:
@@ -302,7 +307,8 @@ class MTDomeCom:
         )
         await asyncio.wait_for(fut=self.client.start_task, timeout=_TIMEOUT)
 
-        await self._start_periodic_tasks()
+        if self.start_periodic_tasks:
+            await self._start_periodic_tasks()
 
         self.log.info("connected")
 
@@ -380,9 +386,9 @@ class MTDomeCom:
         self.log.debug(f"Starting periodic task {method=} with {interval=}")
         try:
             while True:
-                await method()
+                asyncio.create_task(method())
                 await asyncio.sleep(interval)
-        except (asyncio.CancelledError, ValueError):
+        except asyncio.CancelledError:
             # Ignore because the task was canceled on purpose.
             pass
         except Exception as e:
@@ -391,9 +397,9 @@ class MTDomeCom:
 
     async def _cancel_periodic_tasks(self) -> None:
         """Cancel all periodic tasks."""
-        self.periodic_tasks.reverse()
         while self.periodic_tasks:
             periodic_task = self.periodic_tasks.pop()
+            self.log.debug(f"Cancelling periodic task {periodic_task=!r}.")
             periodic_task.cancel()
             await periodic_task
 
@@ -1092,29 +1098,19 @@ class MTDomeCom:
         ----------
         llc_name: `LlcName`
             The name of the lower level component.
-
-        Raises
-        ------
-        ValueError
-            In case the status dict received does not the `LlcName` key.
         """
         # Assume that the corresponding callback exists. The check for that is
         # in _start_periodic_tasks where the telemetry task is scheduled.
         cb = self.telemetry_callbacks[llc_name]
 
         command = CommandName(f"status{llc_name.value}")
-        try:
-            status: dict[str, typing.Any] = await self.write_then_read_reply(
-                command=command
-            )
-        except Exception as e:
-            await cb({"exception": e})  # type: ignore
-            return
-
-        if llc_name not in status:
-            raise ValueError(
-                f"No telemetry for subsystem {llc_name} Received {status=}."
-            )
+        status: dict[str, typing.Any] = {}
+        while llc_name not in status:
+            try:
+                status = await self.write_then_read_reply(command=command)
+            except Exception as e:
+                await cb({"exception": e})  # type: ignore
+                return
 
         pre_processed_status = await self._pre_process_status(
             llc_name, status[llc_name]

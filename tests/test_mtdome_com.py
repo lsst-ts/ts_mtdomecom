@@ -26,7 +26,6 @@ import types
 import typing
 import unittest
 
-import pytest
 from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
@@ -316,9 +315,11 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             telemetry_callbacks=telemetry_callbacks,
         )
         await self.mtdomecom_com.connect()
-        await asyncio.sleep(0.5)
         # OBC statuses are not reported yet.
+        while len(self.mtdomecom_com.lower_level_status) < len(mtdomecom.LlcName) - 1:
+            await asyncio.sleep(0.1)
         assert len(self.mtdomecom_com.lower_level_status) == len(mtdomecom.LlcName) - 1
+
         await self.mtdomecom_com.disconnect()
 
     async def test_request_llc_status(self) -> None:
@@ -334,7 +335,6 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             ).degree
         )
 
-    @pytest.mark.skip(reason="Need to check how to fix this.")
     async def test_llc_status(self) -> None:
         await self.mtdomecom_com.disconnect()
         telemetry_callbacks = {
@@ -353,53 +353,61 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             config=types.SimpleNamespace(),
             simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
             telemetry_callbacks=telemetry_callbacks,
+            start_periodic_tasks=False,
         )
 
         await self.mtdomecom_com.connect()
         assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
 
-        await asyncio.sleep(0.5)
-
+        await self.mtdomecom_com.status_amcs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
         )
 
+        await self.mtdomecom_com.status_apscs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.APSCS]
         )
 
+        await self.mtdomecom_com.status_cbcs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CBCS]
         )
 
+        await self.mtdomecom_com.status_cscs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CSCS]
         )
 
+        await self.mtdomecom_com.status_lcs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LCS]
         )
 
+        await self.mtdomecom_com.status_lwscs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LWSCS]
         )
 
+        await self.mtdomecom_com.status_moncs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.MONCS]
         )
 
+        await self.mtdomecom_com.status_rad()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.RAD]
         )
 
+        await self.mtdomecom_com.status_thcs()
         assert (
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.THCS]
