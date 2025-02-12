@@ -246,6 +246,7 @@ class AmcsStatus(BaseMockStatus):
             frac_time = (current_tai - self.start_tai) / (self.end_tai - self.start_tai)
             self.position_actual = self.start_position + distance * frac_time
             await self._determine_velocity_actual(distance)
+            self.current_state = MotionState.MOVING.name
         self.position_actual = utils.angle_wrap_nonnegative(
             math.degrees(self.position_actual)
         ).rad
