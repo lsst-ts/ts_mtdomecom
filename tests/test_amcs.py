@@ -643,8 +643,8 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             start_tai=start_tai,
         )
         expected_states = [
-            ExpectedState(5.0, 6.05, -MAX_SPEED, MotionState.CRAWLING),
-            ExpectedState(6.0, 2.05, -MAX_SPEED, MotionState.CRAWLING),
+            ExpectedState(5.0, 6.05, -MAX_SPEED, MotionState.MOVING),
+            ExpectedState(6.0, 2.05, -MAX_SPEED, MotionState.MOVING),
             ExpectedState(7.0, 0.0, 0.0, MotionState.STOPPED),
         ]
         await self.verify_halt(
@@ -677,8 +677,8 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             start_tai=start_tai,
         )
         expected_states = [
-            ExpectedState(5.0, 7.0, -MAX_SPEED, MotionState.CRAWLING),
-            ExpectedState(6.0, 3.0, -MAX_SPEED, MotionState.CRAWLING),
+            ExpectedState(5.0, 7.0, -MAX_SPEED, MotionState.MOVING),
+            ExpectedState(6.0, 3.0, -MAX_SPEED, MotionState.MOVING),
             ExpectedState(7.0, 0.0, 0.0, MotionState.STOPPED),
         ]
         await self.verify_halt(
