@@ -381,7 +381,6 @@ class MTDomeCom:
             The periodic method to run.
         interval : `float`
             The interval (sec) at which to run the status method.
-
         """
         self.log.debug(f"Starting periodic task {method=} with {interval=}")
         try:
@@ -810,11 +809,7 @@ class MTDomeCom:
                     case SubSystemId.AMCS:
                         await self.exit_fault_az()
                     case SubSystemId.APSCS:
-                        if (
-                            self.simulation_mode
-                            != ValidSimulationMode.NORMAL_OPERATIONS
-                        ):
-                            await self.exit_fault_shutter()
+                        await self.exit_fault_shutter()
                     case SubSystemId.LCS:
                         await self.exit_fault_louvers()
                     case SubSystemId.LWSCS:
