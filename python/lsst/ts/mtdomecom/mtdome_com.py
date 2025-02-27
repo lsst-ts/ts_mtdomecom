@@ -148,15 +148,18 @@ _KEYS_TO_ROUND = {
 }
 
 # Polling periods [sec] for the lower level components.
-_AMCS_STATUS_PERIOD = 0.2
-_APSCS_STATUS_PERIOD = 0.5
-_CBCS_STATUS_PERIOD = 0.5
-_CSCS_STATUS_PERIOD = 0.5
-_LCS_STATUS_PERIOD = 0.5
-_LWSCS_STATUS_PERIOD = 0.5
-_MONCS_STATUS_PERIOD = 0.5
-_RAD_STATUS_PERIOD = 0.5
-_THCS_STATUS_PERIOD = 0.5
+_STATUS_POKE_PERIOD = 0.1
+
+# Use the _STATUS_POKE_PERIOD as the unit for the following pocking periods.
+_AMCS_STATUS_PERIOD_COUNT = 2  # 0.2 sec
+_APSCS_STATUS_PERIOD_COUNT = 5  # 0.5 sec
+_CBCS_STATUS_PERIOD_COUNT = 5
+_CSCS_STATUS_PERIOD_COUNT = 5
+_LCS_STATUS_PERIOD_COUNT = 5
+_LWSCS_STATUS_PERIOD_COUNT = 5
+_MONCS_STATUS_PERIOD_COUNT = 5
+_RAD_STATUS_PERIOD_COUNT = 5
+_THCS_STATUS_PERIOD_COUNT = 5
 
 # Polling period [sec] for the task that checks if any commands are waiting to
 # be issued.
@@ -231,6 +234,17 @@ class MTDomeCom:
 
         # Keep a lock so only one remote command can be executed at a time.
         self.communication_lock = asyncio.Lock()
+
+        # Lock to issue the non-status command
+        self._non_status_command_lock = asyncio.Lock()
+        self._has_non_status_command = False
+
+        # Status commands information.
+        self._status_commands: dict = {
+            "commands": list(),
+            "max_counts": list(),
+            "counts": list(),
+        }
 
         self.amcs_limits = AmcsLimits()
         self.lwscs_limits = LwscsLimits()
@@ -335,15 +349,15 @@ class MTDomeCom:
 
         # All status methods and the intervals at which they are executed.
         status_methods_and_intervals = {
-            LlcName.AMCS: (self.status_amcs, _AMCS_STATUS_PERIOD),
-            LlcName.APSCS: (self.status_apscs, _APSCS_STATUS_PERIOD),
-            LlcName.CBCS: (self.status_cbcs, _CBCS_STATUS_PERIOD),
-            LlcName.CSCS: (self.status_cscs, _CSCS_STATUS_PERIOD),
-            LlcName.LCS: (self.status_lcs, _LCS_STATUS_PERIOD),
-            LlcName.LWSCS: (self.status_lwscs, _LWSCS_STATUS_PERIOD),
-            LlcName.MONCS: (self.status_moncs, _MONCS_STATUS_PERIOD),
-            LlcName.RAD: (self.status_rad, _RAD_STATUS_PERIOD),
-            LlcName.THCS: (self.status_thcs, _THCS_STATUS_PERIOD),
+            LlcName.AMCS: (self.status_amcs, _AMCS_STATUS_PERIOD_COUNT),
+            LlcName.APSCS: (self.status_apscs, _APSCS_STATUS_PERIOD_COUNT),
+            LlcName.CBCS: (self.status_cbcs, _CBCS_STATUS_PERIOD_COUNT),
+            LlcName.CSCS: (self.status_cscs, _CSCS_STATUS_PERIOD_COUNT),
+            LlcName.LCS: (self.status_lcs, _LCS_STATUS_PERIOD_COUNT),
+            LlcName.LWSCS: (self.status_lwscs, _LWSCS_STATUS_PERIOD_COUNT),
+            LlcName.MONCS: (self.status_moncs, _MONCS_STATUS_PERIOD_COUNT),
+            LlcName.RAD: (self.status_rad, _RAD_STATUS_PERIOD_COUNT),
+            LlcName.THCS: (self.status_thcs, _THCS_STATUS_PERIOD_COUNT),
         }
 
         for llc_name, (method, interval) in status_methods_and_intervals.items():
@@ -352,9 +366,15 @@ class MTDomeCom:
             # slow down operating the dome. The unsupported callbacks should
             # not be included.
             if llc_name in self.telemetry_callbacks:
-                self.periodic_tasks.append(
-                    asyncio.create_task(self.one_periodic_task(method, interval))
-                )
+                self._status_commands["commands"].append(method)
+                self._status_commands["max_counts"].append(interval)
+                self._status_commands["counts"].append(0)
+
+        self.periodic_tasks.append(
+            asyncio.create_task(
+                self.one_periodic_task(self.query_status, _STATUS_POKE_PERIOD)
+            )
+        )
 
         self.periodic_tasks.append(
             asyncio.create_task(
@@ -371,6 +391,29 @@ class MTDomeCom:
                 )
             )
         )
+
+    async def query_status(self) -> None:
+        """Query the status of all lower level components."""
+
+        number_commands = len(self._status_commands["commands"])
+        for idx in range(number_commands):
+            # Return immediately if we have the non-status command to process.
+            if await self.has_non_status_command():
+                return
+
+            # Update the counts for the status commands.
+            self._status_commands["counts"][idx] += 1
+
+            # Execute the command if the count is greater than the max count.
+            if (
+                self._status_commands["counts"][idx]
+                >= self._status_commands["max_counts"][idx]
+            ):
+                # Reset the count.
+                self._status_commands["counts"][idx] = 0
+
+                # Execute the command.
+                await self._status_commands["commands"][idx]()
 
     async def one_periodic_task(self, method: typing.Callable, interval: float) -> None:
         """Run one method forever at the specified interval.
@@ -441,10 +484,24 @@ class MTDomeCom:
         # All commands, that help reduce the power draw, are scheduled. It is
         # up to the dome lower level control system to execute them or not.
         if self.power_management_mode == PowerManagementMode.NO_POWER_MANAGEMENT:
+            await self.update_status_of_non_status_command(True)
             await self.write_then_read_reply(command=command, **params)
         else:
             scheduled_command = ScheduledCommand(command=command, params=params)
             await self.power_management_handler.schedule_command(scheduled_command)
+
+    async def update_status_of_non_status_command(self, status: bool) -> None:
+        """Update the status of the non-status command.
+
+        Parameters
+        ----------
+        status : `bool`
+            Set True if running a non-status command. After it is done, set
+            False.
+        """
+
+        async with self._non_status_command_lock:
+            self._has_non_status_command = status
 
     async def process_command_queue(self) -> None:
         """Process the commands in the queue, if there are any.
@@ -473,6 +530,7 @@ class MTDomeCom:
             current_power_draw
         )
         if scheduled_command is not None:
+            await self.update_status_of_non_status_command(True)
             await self.write_then_read_reply(
                 command=scheduled_command.command, **scheduled_command.params
             )
@@ -510,6 +568,14 @@ class MTDomeCom:
     ) -> dict[str, typing.Any]:
         """Write the cmd string and then read the reply to the command.
 
+        Notes
+        -----
+        For the function that calls this method, it might need to call the
+        self.update_status_of_non_status_command() first and set the argument
+        to be True if it is a non-status command. Otherwise, the continuous
+        status commands in self.query_status() will block this in the TCP/IP
+        pipe.
+
         Parameters
         ----------
         command : `CommandName`
@@ -533,6 +599,11 @@ class MTDomeCom:
             commandId=command_id, command=command_name, parameters=params
         )
         async with self.communication_lock:
+            # For the non-status command, reset the flag.
+            if not command_name.startswith("status"):
+                if await self.has_non_status_command():
+                    await self.update_status_of_non_status_command(False)
+
             if self.client is None:
                 raise RuntimeError(
                     f"Error writing command {command_dict}: self.client == None."
@@ -576,6 +647,18 @@ class MTDomeCom:
 
             return data
 
+    async def has_non_status_command(self) -> bool:
+        """Check if a non-status command is running.
+
+        Returns
+        -------
+        status : `bool`
+            True if a non-status command is running, False otherwise.
+        """
+
+        async with self._non_status_command_lock:
+            return self._has_non_status_command
+
     async def move_az(self, position: float, velocity: float) -> None:
         """Move AZ.
 
@@ -598,6 +681,7 @@ class MTDomeCom:
         dome_position = utils.angle_wrap_nonnegative(
             position + DOME_AZIMUTH_OFFSET
         ).degree
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.MOVE_AZ,
             position=math.radians(dome_position),
@@ -632,6 +716,7 @@ class MTDomeCom:
             Engage the brakes (true) or not (false).
         """
         self.log.debug(f"stop_az: {engage_brakes=!s}")
+        await self.update_status_of_non_status_command(True)
         if engage_brakes:
             await self.write_then_read_reply(command=CommandName.GO_STATIONARY_AZ)
         else:
@@ -647,6 +732,7 @@ class MTDomeCom:
             Engage the brakes (true) or not (false).
         """
         self.log.debug(f"stop_el: {engage_brakes=!s}")
+        await self.update_status_of_non_status_command(True)
         if engage_brakes:
             await self.write_then_read_reply(command=CommandName.GO_STATIONARY_EL)
         else:
@@ -662,6 +748,7 @@ class MTDomeCom:
             Engage the brakes (true) or not (false).
         """
         self.log.debug(f"stop_louvers: {engage_brakes=!s}")
+        await self.update_status_of_non_status_command(True)
         if engage_brakes:
             await self.write_then_read_reply(command=CommandName.GO_STATIONARY_LOUVERS)
         else:
@@ -677,6 +764,7 @@ class MTDomeCom:
             Engage the brakes (true) or not (false).
         """
         self.log.debug(f"stop_shutter: {engage_brakes=!s}")
+        await self.update_status_of_non_status_command(True)
         if engage_brakes:
             await self.write_then_read_reply(command=CommandName.GO_STATIONARY_SHUTTER)
         else:
@@ -720,6 +808,7 @@ class MTDomeCom:
         care the conversion to radians.
         """
         self.log.debug(f"crawl_az: {velocity=!s}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.CRAWL_AZ, velocity=math.radians(velocity)
         )
@@ -780,6 +869,7 @@ class MTDomeCom:
     async def park(self) -> None:
         """Park the dome."""
         self.log.debug("park")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.PARK)
 
     async def set_temperature(self, temperature: float) -> None:
@@ -791,6 +881,7 @@ class MTDomeCom:
             The temperature, in degrees Celsius, to set.
         """
         self.log.debug(f"set_temperature: {temperature=!s}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.SET_TEMPERATURE, temperature=temperature
         )
@@ -827,10 +918,12 @@ class MTDomeCom:
         # always send resetDrives commands.
         az_reset = [1] * AMCS_NUM_MOTORS
         self.log.debug(f"reset_drives_az: {az_reset=!s}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_AZ, reset=az_reset
         )
         self.log.debug("exit_fault_az")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_AZ)
 
     async def exit_fault_shutter(self) -> None:
@@ -839,26 +932,31 @@ class MTDomeCom:
         # always send resetDrives commands.
         aps_reset = [1] * APSCS_NUM_SHUTTERS * APSCS_NUM_MOTORS_PER_SHUTTER
         self.log.debug(f"reset_drives_shutter: {aps_reset=!s}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_SHUTTER,
             reset=aps_reset,
         )
         self.log.debug("exit_fault_shutter")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_SHUTTER)
 
     async def exit_fault_louvers(self) -> None:
         """Indicate that all LCS hardware errors have been resolved."""
         self.log.debug("exit_fault_louvers")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
 
     async def exit_fault_el(self) -> None:
         """Indicate that all LWSCS hardware errors have been resolved."""
         self.log.debug("exit_fault_el")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_EL)
 
     async def exit_fault_thermal(self) -> None:
         """Indicate that all ThCS hardware errors have been resolved."""
         self.log.debug("exit_fault_th")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_THERMAL)
 
     async def set_operational_mode(
@@ -890,6 +988,7 @@ class MTDomeCom:
                 command = self.operational_mode_command_dict[sub_system_id][
                     operational_mode.name
                 ]
+                await self.update_status_of_non_status_command(True)
                 await self.write_then_read_reply(command=command)
 
     async def reset_drives_az(self, reset: list[int]) -> None:
@@ -904,6 +1003,7 @@ class MTDomeCom:
             List of indices of the motors to reset.
         """
         self.log.debug(f"reset_drives_az: {reset=}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_AZ, reset=reset
         )
@@ -920,6 +1020,7 @@ class MTDomeCom:
             List of indices of the motors to reset.
         """
         self.log.debug(f"reset_drives_shutter: reset={reset}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_SHUTTER, reset=reset
         )
@@ -931,6 +1032,7 @@ class MTDomeCom:
         not been installed yet to compensate for slippage of the drives.
         """
         self.log.debug("set_zero_az")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.SET_ZERO_AZ)
 
     async def home(self, sub_system_ids: int) -> None:
@@ -981,11 +1083,13 @@ class MTDomeCom:
         else:
             raise ValueError(f"Encountered unsupported {system=!s}")
 
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.CONFIG, system=system, settings=validated_settings
         )
 
     async def restore_llcs(self) -> None:
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.RESTORE)
 
     async def fans(self, speed: float) -> None:
@@ -1010,6 +1114,7 @@ class MTDomeCom:
             The action to perform.
         """
         self.log.debug(f"inflate: {action=!s}")
+        await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.INFLATE, action=action.value
         )
