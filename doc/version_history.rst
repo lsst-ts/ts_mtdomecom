@@ -7,6 +7,18 @@ Version History
 ###############
 
 ======
+v0.2.3
+======
+* Exit fault of APSCS under the normal operation.
+* Add the lock to execute the non-status command first compared with the status related commands.
+* Unify the tasks of state queries to a single one.
+
+Requires:
+
+* ts_tcpip
+* ts_utils
+
+======
 v0.2.2
 ======
 * Fix a tiny bug in the AMCS simulator.
