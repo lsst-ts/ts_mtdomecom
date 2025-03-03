@@ -50,7 +50,16 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         assert len(self.mtdomecom_com.telemetry_callbacks) == 0
 
     async def asyncTearDown(self) -> None:
+        assert await self.mtdomecom_com.has_non_status_command() is False
         await self.mtdomecom_com.disconnect()
+
+    async def test_update_status_of_non_status_command(self) -> None:
+
+        await self.mtdomecom_com.update_status_of_non_status_command(True)
+        assert await self.mtdomecom_com.has_non_status_command() is True
+
+        await self.mtdomecom_com.update_status_of_non_status_command(False)
+        assert await self.mtdomecom_com.has_non_status_command() is False
 
     async def test_move_az(self) -> None:
         exp_position = 329.0
