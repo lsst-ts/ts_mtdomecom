@@ -200,6 +200,9 @@ class MTDomeCom:
     start_periodic_tasks : `bool`
         Start the periodic tasks or not. Defaults to `True`. Unit tests may set
         this to `False`.
+    wrap_callbacks_with_async_task : `bool`, optional
+        Wrap the callbacks in an asyncio task or not. Defaults to `True`. The
+        GUI needs to set this to False to make it work.
     """
 
     _index_iter = utils.index_generator()
@@ -213,12 +216,14 @@ class MTDomeCom:
             dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None
         ) = None,
         start_periodic_tasks: bool = True,
+        wrap_callbacks_with_async_task: bool = True,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
         self.config = config
         self.simulation_mode = simulation_mode
         self.start_periodic_tasks = start_periodic_tasks
+        self._wrap_callbacks_with_async_task = wrap_callbacks_with_async_task
 
         # Initialize telemetry_callbacks to an empty dict if None.
         self.telemetry_callbacks = telemetry_callbacks or {}
@@ -372,7 +377,11 @@ class MTDomeCom:
 
         self.periodic_tasks.append(
             asyncio.create_task(
-                self.one_periodic_task(self.query_status, _STATUS_POKE_PERIOD)
+                self.one_periodic_task(
+                    self.query_status,
+                    _STATUS_POKE_PERIOD,
+                    wrap_with_async_task=self._wrap_callbacks_with_async_task,
+                )
             )
         )
 
@@ -415,7 +424,12 @@ class MTDomeCom:
                 # Execute the command.
                 await self._status_commands["commands"][idx]()
 
-    async def one_periodic_task(self, method: typing.Callable, interval: float) -> None:
+    async def one_periodic_task(
+        self,
+        method: typing.Callable,
+        interval: float,
+        wrap_with_async_task: bool = True,
+    ) -> None:
         """Run one method forever at the specified interval.
 
         Parameters
@@ -424,11 +438,20 @@ class MTDomeCom:
             The periodic method to run.
         interval : `float`
             The interval (sec) at which to run the status method.
+        wrap_with_async_task : `bool`, optional
+            Wrap the method in an asyncio task or not. Defaults to `True`.
         """
         self.log.debug(f"Starting periodic task {method=} with {interval=}")
         try:
+            background_tasks = set()
             while True:
-                asyncio.create_task(method())
+                if wrap_with_async_task:
+                    task = asyncio.create_task(method())
+                    background_tasks.add(task)
+
+                    task.add_done_callback(background_tasks.discard)
+                else:
+                    await method()
                 await asyncio.sleep(interval)
         except asyncio.CancelledError:
             # Ignore because the task was canceled on purpose.
