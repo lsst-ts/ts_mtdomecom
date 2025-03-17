@@ -443,9 +443,13 @@ class MTDomeCom:
         """
         self.log.debug(f"Starting periodic task {method=} with {interval=}")
         try:
+            background_tasks = set()
             while True:
                 if wrap_with_async_task:
-                    asyncio.create_task(method())
+                    task = asyncio.create_task(method())
+                    background_tasks.add(task)
+
+                    task.add_done_callback(background_tasks.discard)
                 else:
                     await method()
                 await asyncio.sleep(interval)
