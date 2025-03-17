@@ -7,6 +7,12 @@ Version History
 ###############
 
 ======
+v0.2.4
+======
+
+* Add the argument in ``MTDomeCom.one_periodic_task()`` to decide to wrap the callback or not to improve the performance.
+
+======
 v0.2.3
 ======
 * Exit fault of APSCS under the normal operation.
