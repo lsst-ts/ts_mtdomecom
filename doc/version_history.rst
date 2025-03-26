@@ -7,6 +7,12 @@ Version History
 ###############
 
 ======
+v0.2.5
+======
+
+* The status command does not wrap with the asyncio task by default.
+
+======
 v0.2.4
 ======
 
