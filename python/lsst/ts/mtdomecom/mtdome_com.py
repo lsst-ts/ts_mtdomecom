@@ -200,9 +200,6 @@ class MTDomeCom:
     start_periodic_tasks : `bool`
         Start the periodic tasks or not. Defaults to `True`. Unit tests may set
         this to `False`.
-    wrap_callbacks_with_async_task : `bool`, optional
-        Wrap the callbacks in an asyncio task or not. Defaults to `True`. The
-        GUI needs to set this to False to make it work.
     """
 
     _index_iter = utils.index_generator()
@@ -216,14 +213,12 @@ class MTDomeCom:
             dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None
         ) = None,
         start_periodic_tasks: bool = True,
-        wrap_callbacks_with_async_task: bool = True,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
         self.config = config
         self.simulation_mode = simulation_mode
         self.start_periodic_tasks = start_periodic_tasks
-        self._wrap_callbacks_with_async_task = wrap_callbacks_with_async_task
 
         # Initialize telemetry_callbacks to an empty dict if None.
         self.telemetry_callbacks = telemetry_callbacks or {}
@@ -380,7 +375,7 @@ class MTDomeCom:
                 self.one_periodic_task(
                     self.query_status,
                     _STATUS_POKE_PERIOD,
-                    wrap_with_async_task=self._wrap_callbacks_with_async_task,
+                    wrap_with_async_task=False,
                 )
             )
         )
