@@ -150,16 +150,18 @@ _KEYS_TO_ROUND = {
 # Polling periods [sec] for the lower level components.
 _STATUS_POKE_PERIOD = 0.1
 
-# Use the _STATUS_POKE_PERIOD as the unit for the following pocking periods.
-_AMCS_STATUS_PERIOD_COUNT = 2  # 0.2 sec
-_APSCS_STATUS_PERIOD_COUNT = 5  # 0.5 sec
-_CBCS_STATUS_PERIOD_COUNT = 5
-_CSCS_STATUS_PERIOD_COUNT = 5
-_LCS_STATUS_PERIOD_COUNT = 5
-_LWSCS_STATUS_PERIOD_COUNT = 5
-_MONCS_STATUS_PERIOD_COUNT = 5
-_RAD_STATUS_PERIOD_COUNT = 5
-_THCS_STATUS_PERIOD_COUNT = 5
+# Use the _STATUS_POKE_PERIOD as the unit for the following poking periods.
+_STATUS_POKE_PERIODS = {
+    LlcName.AMCS: 2,
+    LlcName.APSCS: 5,
+    LlcName.CBCS: 5,
+    LlcName.CSCS: 5,
+    LlcName.LCS: 5,
+    LlcName.LWSCS: 5,
+    LlcName.MONCS: 5,
+    LlcName.RAD: 5,
+    LlcName.THCS: 5,
+}
 
 # Polling period [sec] for the task that checks if any commands are waiting to
 # be issued.
@@ -239,12 +241,23 @@ class MTDomeCom:
         self._non_status_command_lock = asyncio.Lock()
         self._has_non_status_command = False
 
-        # Status commands information.
-        self._status_commands: dict = {
-            "commands": list(),
-            "max_counts": list(),
-            "counts": list(),
+        # All status commands.
+        self._status_methods = {
+            LlcName.AMCS: self.status_amcs,
+            LlcName.APSCS: self.status_apscs,
+            LlcName.CBCS: self.status_cbcs,
+            LlcName.CSCS: self.status_cscs,
+            LlcName.LCS: self.status_lcs,
+            LlcName.LWSCS: self.status_lwscs,
+            LlcName.MONCS: self.status_moncs,
+            LlcName.RAD: self.status_rad,
+            LlcName.THCS: self.status_thcs,
         }
+
+        # Status command counts information. This holds the amount of times a
+        # status command has been executed for all LlcNames for which the
+        # status commands need to be executed.
+        self._status_command_counts: dict = {}
 
         self.amcs_limits = AmcsLimits()
         self.lwscs_limits = LwscsLimits()
@@ -347,28 +360,13 @@ class MTDomeCom:
         """Start all periodic tasks."""
         await self._cancel_periodic_tasks()
 
-        # All status methods and the intervals at which they are executed.
-        status_methods_and_intervals = {
-            LlcName.AMCS: (self.status_amcs, _AMCS_STATUS_PERIOD_COUNT),
-            LlcName.APSCS: (self.status_apscs, _APSCS_STATUS_PERIOD_COUNT),
-            LlcName.CBCS: (self.status_cbcs, _CBCS_STATUS_PERIOD_COUNT),
-            LlcName.CSCS: (self.status_cscs, _CSCS_STATUS_PERIOD_COUNT),
-            LlcName.LCS: (self.status_lcs, _LCS_STATUS_PERIOD_COUNT),
-            LlcName.LWSCS: (self.status_lwscs, _LWSCS_STATUS_PERIOD_COUNT),
-            LlcName.MONCS: (self.status_moncs, _MONCS_STATUS_PERIOD_COUNT),
-            LlcName.RAD: (self.status_rad, _RAD_STATUS_PERIOD_COUNT),
-            LlcName.THCS: (self.status_thcs, _THCS_STATUS_PERIOD_COUNT),
-        }
-
-        for llc_name, (method, interval) in status_methods_and_intervals.items():
+        for llc_name in LlcName:
             # Only request the LLC status if the corresponding callback exists.
             # This is necessary because some telemetry commands time out and
             # slow down operating the dome. The unsupported callbacks should
             # not be included.
             if llc_name in self.telemetry_callbacks:
-                self._status_commands["commands"].append(method)
-                self._status_commands["max_counts"].append(interval)
-                self._status_commands["counts"].append(0)
+                self._status_command_counts[llc_name] = 0
 
         self.periodic_tasks.append(
             asyncio.create_task(
@@ -399,25 +397,26 @@ class MTDomeCom:
     async def query_status(self) -> None:
         """Query the status of all lower level components."""
 
-        number_commands = len(self._status_commands["commands"])
-        for idx in range(number_commands):
+        for llc_name in self._status_command_counts:
             # Return immediately if we have the non-status command to process.
             if await self.has_non_status_command():
                 return
 
             # Update the counts for the status commands.
-            self._status_commands["counts"][idx] += 1
+            self._status_command_counts[llc_name] += 1
 
             # Execute the command if the count is greater than the max count.
-            if (
-                self._status_commands["counts"][idx]
-                >= self._status_commands["max_counts"][idx]
-            ):
+            if self._status_command_counts[llc_name] >= _STATUS_POKE_PERIODS[llc_name]:
                 # Reset the count.
-                self._status_commands["counts"][idx] = 0
+                self._status_command_counts[llc_name] = 0
 
                 # Execute the command.
-                await self._status_commands["commands"][idx]()
+                try:
+                    await self._status_methods[llc_name]()
+                except Exception:
+                    self.log.exception(
+                        f"Failed to get the status for {llc_name}. Ignoring."
+                    )
 
     async def one_periodic_task(
         self,
