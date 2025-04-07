@@ -7,6 +7,12 @@ Version History
 ###############
 
 ======
+v0.2.6
+======
+
+* Rewrite status commands task.
+
+======
 v0.2.5
 ======
 
