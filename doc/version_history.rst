@@ -7,6 +7,12 @@ Version History
 ###############
 
 ======
+v0.2.7
+======
+
+* Enable the ApSCS setOperationalMode command.
+
+======
 v0.2.6
 ======
 
