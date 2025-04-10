@@ -123,6 +123,10 @@ OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING = {
         OperationalMode.NORMAL.name: CommandName.SET_NORMAL_AZ,
         OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_AZ,
     },
+    SubSystemId.APSCS: {
+        OperationalMode.NORMAL.name: CommandName.SET_NORMAL_SHUTTER,
+        OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_SHUTTER,
+    },
 }
 
 # The values of these keys need to be compensated for the dome azimuth offset
