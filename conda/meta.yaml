@@ -7,21 +7,20 @@ source:
   path: ../
 
 build:
-  noarch: generic
+  noarch: python
   script: {{ PYTHON }} -m pip install --no-deps --ignore-installed .
 
 test:
   requires:
     - ts-conda-build =0.4
-    - ts-idl {{ idl_version }}
+    - ts-xml {{ xml_version }}
     - ts-tcpip
-    - ts-utils
   source_files:
     - python
     - tests
     - pyproject.toml
   commands:
-    - pytest
+    - pytest -v
 
 requirements:
   host:
@@ -33,10 +32,11 @@ requirements:
     - python {{ python }}
     - setuptools_scm
     - setuptools
+    - ts-conda-build =0.4
   run:
     - python {{ python }}
     - setuptools
     - setuptools_scm
-    - ts-idl {{ idl_version }}
+    - ts-xml
     - ts-tcpip
     - ts-utils

@@ -7,6 +7,12 @@ Version History
 ###############
 
 ======
+v0.2.9
+======
+
+* Remove ts_idl dependency from conda recipe and add ts_xml.
+
+======
 v0.2.8
 ======
 
