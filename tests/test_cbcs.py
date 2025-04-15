@@ -49,3 +49,4 @@ class CapacitorBanksTestCase(unittest.IsolatedAsyncioTestCase):
         assert (
             cscs.llc_status["doorOpen"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
         )
+        assert cscs.llc_status["dcBusVoltage"] == 0.0
