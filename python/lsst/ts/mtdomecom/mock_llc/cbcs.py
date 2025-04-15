@@ -43,6 +43,7 @@ class CbcsStatus(BaseMockStatus):
         self.high_temperature = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)
         self.low_residual_voltage = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)
         self.door_open = np.full(CBCS_NUM_CAPACITOR_BANKS, False, dtype=bool)
+        self.dc_bus_voltage = 0.0
 
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in
@@ -62,6 +63,7 @@ class CbcsStatus(BaseMockStatus):
             "highTemperature": self.high_temperature.tolist(),
             "lowResidualVoltage": self.low_residual_voltage.tolist(),
             "doorOpen": self.door_open.tolist(),
+            "dcBusVoltage": self.dc_bus_voltage,
             "timestampUTC": current_tai,
         }
         self.log.debug(f"cbcs_state = {self.llc_status}")

@@ -120,6 +120,9 @@ registry["CBCS"] = json.loads(
             }
           ]
         },
+        "dcBusVoltage": {
+          "type": "number"
+        },
         "timestampUTC": {
           "type": "number"
         }
@@ -131,6 +134,7 @@ registry["CBCS"] = json.loads(
         "highTemperature",
         "lowResidualVoltage",
         "doorOpen",
+        "dcBusVoltage",
         "timestampUTC"
       ],
       "additionalProperties": false
