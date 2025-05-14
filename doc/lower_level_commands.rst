@@ -31,6 +31,7 @@ The units are `AstroPy Units`_.
     "goStationaryEl"
     "goStationaryLouvers"
     "goStationaryShutter"
+    "home"
     "inflate", "action", "string", "unitless", "ON or OFF"
     "moveAz", "| position
     | velocity", "| double
@@ -43,7 +44,6 @@ The units are `AstroPy Units`_.
     "resetDrivesAz", "reset", "[int]", "unitless", "An array of 0 and 1 where 0 means do not reset and 1 means reset."
     "resetDrivesShutter", "reset", "[int]", "unitless", "An array of 0 and 1 where 0 means do not reset and 1 means reset."
     "restore"
-    "searchZeroShutter"
     "setDegradedAz"
     "setDegradedEl"
     "setDegradedLouvers"

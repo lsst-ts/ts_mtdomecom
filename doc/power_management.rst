@@ -161,7 +161,7 @@ These are:
 - fans
 - moveEl
 - openShutter
-- searchZeroShutter
+- home
 - setLouvers
 
 If the CSC receives the order to execute any of these commands, it schedules the command in the handler.

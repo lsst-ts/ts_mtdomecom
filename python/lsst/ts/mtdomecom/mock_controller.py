@@ -120,6 +120,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.GO_STATIONARY_EL: self.go_stationary_el,
             CommandName.GO_STATIONARY_LOUVERS: self.go_stationary_louvers,
             CommandName.GO_STATIONARY_SHUTTER: self.go_stationary_shutter,
+            CommandName.HOME: self.home,
             CommandName.INFLATE: self.inflate,
             CommandName.MOVE_AZ: self.move_az,
             CommandName.MOVE_EL: self.move_el,
@@ -128,7 +129,6 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.RESET_DRIVES_AZ: self.reset_drives_az,
             CommandName.RESET_DRIVES_SHUTTER: self.reset_drives_shutter,
             CommandName.RESTORE: self.restore,
-            CommandName.SEARCH_ZERO_SHUTTER: self.search_zero_shutter,
             CommandName.SET_DEGRADED_AZ: self.set_degraded_az,
             CommandName.SET_DEGRADED_EL: self.set_degraded_el,
             CommandName.SET_DEGRADED_LOUVERS: self.set_degraded_louvers,
@@ -817,11 +817,11 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.amcs is not None
         return await self.amcs.set_zero_az(self.current_tai)
 
-    async def search_zero_shutter(self) -> float:
-        """Search the zero position of the Aperture Shutter, which is the
-        closed position. This is necessary in case the ApSCS (Aperture Shutter
-        Control system) was shutdown with the Aperture Shutter not fully open
-        or fully closed.
+    async def home(self) -> float:
+        """Home the Aperture Shutter, which is the closed position.
+
+        This is necessary in case the ApSCS (Aperture Shutter Control System)
+        was shutdown with the Aperture Shutter not fully open or fully closed.
 
         Returns
         -------
@@ -829,7 +829,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             The estimated duration of the execution of the command.
         """
         assert self.apscs is not None
-        return await self.apscs.search_zero_shutter(self.current_tai)
+        return await self.apscs.home(self.current_tai)
 
 
 async def main() -> None:

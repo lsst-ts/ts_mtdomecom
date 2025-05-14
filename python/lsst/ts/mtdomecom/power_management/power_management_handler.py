@@ -203,9 +203,7 @@ class PowerManagementHandler:
         _, scheduled_command = await self.command_queue.get()
         match scheduled_command.command:
             case (
-                CommandName.OPEN_SHUTTER
-                | CommandName.CLOSE_SHUTTER
-                | CommandName.SEARCH_ZERO_SHUTTER
+                CommandName.OPEN_SHUTTER | CommandName.CLOSE_SHUTTER | CommandName.HOME
             ):
                 return await self.generic_get_scheduled_command_or_stop_commands(
                     scheduled_command,
@@ -311,7 +309,7 @@ class PowerManagementHandler:
             case (
                 CommandName.OPEN_SHUTTER
                 | CommandName.CLOSE_SHUTTER
-                | CommandName.SEARCH_ZERO_SHUTTER
+                | CommandName.HOME
                 | CommandName.SET_LOUVERS
                 | CommandName.CLOSE_LOUVERS
             ):
@@ -377,7 +375,7 @@ class PowerManagementHandler:
                     return None
             case (
                 CommandName.OPEN_SHUTTER
-                | CommandName.SEARCH_ZERO_SHUTTER
+                | CommandName.HOME
                 | CommandName.SET_LOUVERS
                 | CommandName.MOVE_EL
                 | CommandName.CRAWL_EL
