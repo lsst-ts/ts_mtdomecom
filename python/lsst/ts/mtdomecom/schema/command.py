@@ -88,7 +88,7 @@ registry["command"] = json.loads(
         "resetDrivesAz",
         "setZeroAz",
         "resetDrivesShutter",
-        "searchZeroShutter"
+        "home"
       ]
     }
   },
@@ -1042,7 +1042,7 @@ registry["command"] = json.loads(
       "if": {
         "properties": {
           "command": {
-            "const": "searchZeroShutter"
+            "const": "home"
           }
         }
       },

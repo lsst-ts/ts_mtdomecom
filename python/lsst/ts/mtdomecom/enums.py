@@ -98,6 +98,7 @@ class CommandName(enum.StrEnum):
     GO_STATIONARY_EL = "goStationaryEl"
     GO_STATIONARY_LOUVERS = "goStationaryLouvers"
     GO_STATIONARY_SHUTTER = "goStationaryShutter"
+    HOME = "home"
     INFLATE = "inflate"
     MOVE_AZ = "moveAz"
     MOVE_EL = "moveEl"
@@ -106,7 +107,6 @@ class CommandName(enum.StrEnum):
     RESET_DRIVES_AZ = "resetDrivesAz"
     RESET_DRIVES_SHUTTER = "resetDrivesShutter"
     RESTORE = "restore"
-    SEARCH_ZERO_SHUTTER = "searchZeroShutter"
     SET_DEGRADED_AZ = "setDegradedAz"
     SET_DEGRADED_EL = "setDegradedEl"
     SET_DEGRADED_LOUVERS = "setDegradedLouvers"
@@ -214,9 +214,9 @@ POWER_MANAGEMENT_COMMANDS = [
     CommandName.CLOSE_SHUTTER,
     CommandName.CRAWL_EL,
     CommandName.FANS,
+    CommandName.HOME,
     CommandName.MOVE_EL,
     CommandName.OPEN_SHUTTER,
-    CommandName.SEARCH_ZERO_SHUTTER,
     CommandName.SET_LOUVERS,
 ]
 

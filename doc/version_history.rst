@@ -11,6 +11,9 @@ v0.2.10
 =======
 
 * Add temporary mapping for ApSCS states until XML 23.2 is released.
+* Rename the searchZeroShutter command to home.
+  For now it only supports homing the shutter.
+  This needs to be revised if additional home commands are introduced in the future.
 
 ======
 v0.2.9

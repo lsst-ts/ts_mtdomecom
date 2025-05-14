@@ -285,7 +285,7 @@ class MTDomeCom:
         # Keep track of which command to send the home command on a lower level
         # component.
         self.set_home_command_dict = {
-            SubSystemId.APSCS: CommandName.SEARCH_ZERO_SHUTTER,
+            SubSystemId.APSCS: CommandName.HOME,
         }
 
         # Keep track of the commands that have been sent and that haven't been

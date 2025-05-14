@@ -533,12 +533,12 @@ class ApscsStatus(BaseMockStatus):
         duration = max(durations)
         return duration
 
-    async def search_zero_shutter(self, start_tai: float) -> float:
-        """Search the zero position of the Aperture Shutter, which is the
-        closed position. This is necessary in case the ApSCS (Aperture Shutter
-        Control system) was shutdown with the Aperture Shutter not fully open
-        or fully closed. For now `closeShutter` simply is called but this may
-        change.
+    async def home(self, start_tai: float) -> float:
+        """Home the Aperture Shutter, which is the closed position.
+
+        This is necessary in case the ApSCS (Aperture Shutter Control System)
+        was shutdown with the Aperture Shutter not fully open or fully closed.
+        For now `closeShutter` simply is called but this may change.
 
         Parameters
         ----------
