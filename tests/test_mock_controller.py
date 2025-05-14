@@ -1400,7 +1400,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 math.radians(0.0),
             )
 
-    async def test_search_zero_shutter(self) -> None:
+    async def test_home(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
             initial_position_actual = np.full(
                 mtdomecom.APSCS_NUM_SHUTTERS, 0.0, dtype=float
@@ -1410,9 +1410,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 position_actual=initial_position_actual.tolist(),
             )
 
-            await self.write(
-                command=mtdomecom.CommandName.SEARCH_ZERO_SHUTTER, parameters={}
-            )
+            await self.write(command=mtdomecom.CommandName.HOME, parameters={})
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.data["timeout"] == pytest.approx(0.0)
