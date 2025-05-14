@@ -6,6 +6,12 @@
 Version History
 ###############
 
+=======
+v0.2.10
+=======
+
+* Add temporary mapping for ApSCS states until XML 23.2 is released.
+
 ======
 v0.2.9
 ======

@@ -150,6 +150,16 @@ class ApscsStatus(BaseMockStatus):
     async def _handle_open_or_close_or_stationary(
         self, current_tai: float, shutter_id: int
     ) -> None:
+        # TODO DM-50801 Remove the mappings below this line as soon as the enum
+        #  values are available in ts_xml.
+        try:
+            floce = MotionState.FINAL_DOWN_CLOSE_LS_ENGAGED
+        except AttributeError:
+            floce = MotionState.FINAL_LOW_CLOSE_LS_ENGAGED
+        try:
+            flcle = MotionState.FINAL_DOWN_OPEN_LS_ENGAGED
+        except AttributeError:
+            flcle = MotionState.FINAL_LOW_OPEN_LS_ENGAGED
         match self.current_state[shutter_id]:
             case InternalMotionState.STATIONARY.name:
                 await self._handle_stationary(shutter_id)
@@ -177,7 +187,7 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_proximity_open_ls_engaged(shutter_id)
             case MotionState.FINAL_UP_OPEN_LS_ENGAGED.name:
                 await self._handle_final_up_open_ls_engaged(shutter_id)
-            case MotionState.FINAL_DOWN_OPEN_LS_ENGAGED.name:
+            case flcle.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
             case MotionState.CLOSING.name:
                 await self._handle_opening_or_closing(current_tai, shutter_id)
@@ -185,7 +195,7 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_proximity_closed_ls_engaged(shutter_id)
             case MotionState.FINAL_UP_CLOSE_LS_ENGAGED.name:
                 await self._handle_final_up_close_ls_engaged(shutter_id)
-            case MotionState.FINAL_DOWN_CLOSE_LS_ENGAGED.name:
+            case floce.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
             case MotionState.STOPPING.name:
                 self.current_state[shutter_id] = MotionState.STOPPED.name
