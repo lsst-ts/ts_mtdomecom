@@ -24,6 +24,7 @@ __all__ = ["COMMANDS_REPLIED_PERIOD", "CommandTime", "MTDomeCom"]
 import asyncio
 import logging
 import math
+import traceback
 import typing
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -1230,7 +1231,14 @@ class MTDomeCom:
             try:
                 status = await self.write_then_read_reply(command=command)
             except Exception as e:
-                await cb({"exception": e})  # type: ignore
+                self.log.exception(f"Exception requesting status for {llc_name.value}.")
+                await cb(
+                    {
+                        "exception": traceback.TracebackException.from_exception(
+                            e
+                        ).format()
+                    }
+                )  # type: ignore
                 return
 
         pre_processed_status = await self._pre_process_status(
