@@ -29,7 +29,7 @@ from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import MotionState
 
 from .encoding_tools import validate
-from .enums import CommandName, LlcName, ResponseCode
+from .enums import ROTATING_COMMANDS, CommandName, LlcName, ResponseCode
 from .mock_llc import (
     AmcsStatus,
     ApscsStatus,
@@ -53,8 +53,11 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         TCP/IP port
     log : `logging.Logger`
         The logger to use.
-    connect_callback : callable
+    connect_callback : `callable`
         The callback to use when a client connects.
+    communication_error : `bool`
+        Is there a communication error with the rotating part (True) or not
+        (False)? This is for unit tests only. The default is False.
 
     Notes
     -----
@@ -93,6 +96,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         port: int,
         log: logging.Logger,
         connect_callback: None | tcpip.ConnectCallbackType = None,
+        communication_error: bool = False,
     ) -> None:
         super().__init__(
             port=port,
@@ -166,6 +170,10 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         # Mock a network interruption (True) or not (False). To be set by unit
         # tests only.
         self.enable_network_interruption = False
+        # Mock a communication error (True) or not (False). To be set by unit
+        # tests only.
+        self.communication_error = communication_error
+
         self.read_task: asyncio.Future | None = None
 
         # Keep track of the command ID.
@@ -254,21 +262,27 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
                     # Mock a network interruption: it doesn't matter if
                     # the command never is received or the reply never
                     # sent.
+                    self.log.debug("Mocking a network interruption.")
                     return
 
-                func = self.dispatch_dict[cmd]
-                kwargs = data["parameters"]
+                if self.communication_error and cmd in ROTATING_COMMANDS:
+                    self.log.debug("Mocking a communication error.")
+                    response = ResponseCode.ROTATING_PART_NOT_RECEIVED
+                    duration = -1
+                else:
+                    func = self.dispatch_dict[cmd]
+                    kwargs = data["parameters"]
 
-                if self.enable_slow_network:
-                    # Mock a slow network.
-                    await asyncio.sleep(MockMTDomeController.SLOW_NETWORK_SLEEP)
+                    if self.enable_slow_network:
+                        # Mock a slow network.
+                        await asyncio.sleep(MockMTDomeController.SLOW_NETWORK_SLEEP)
 
-                duration = await func(**kwargs)
+                    duration = await func(**kwargs)
 
-                if cmd.startswith("status"):
-                    # The status commands take care of sending a reply
-                    # themselves.
-                    return
+                    if cmd.startswith("status"):
+                        # The status commands take care of sending a reply
+                        # themselves.
+                        return
         except Exception:
             self.log.exception(f"Command '{data}' failed")
             # Command rejected: a message explaining why needs to be
