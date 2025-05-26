@@ -21,6 +21,7 @@
 
 __all__ = [
     "POWER_MANAGEMENT_COMMANDS",
+    "ROTATING_COMMANDS",
     "STOP_EL",
     "STOP_FANS",
     "STOP_LOUVERS",
@@ -200,6 +201,38 @@ class ValidSimulationMode(enum.IntEnum):
     SIMULATION_WITH_MOCK_CONTROLLER = 1
     SIMULATION_WITHOUT_MOCK_CONTROLLER = 2
 
+
+# Commands of the Lower Level Components on the rotating part of the dome.
+ROTATING_COMMANDS = [
+    CommandName.CLOSE_LOUVERS,
+    CommandName.CLOSE_SHUTTER,
+    CommandName.CRAWL_EL,
+    CommandName.EXIT_FAULT_EL,
+    CommandName.EXIT_FAULT_LOUVERS,
+    CommandName.EXIT_FAULT_SHUTTER,
+    CommandName.GO_STATIONARY_EL,
+    CommandName.GO_STATIONARY_LOUVERS,
+    CommandName.GO_STATIONARY_SHUTTER,
+    CommandName.HOME,
+    CommandName.MOVE_EL,
+    CommandName.OPEN_SHUTTER,
+    CommandName.RESET_DRIVES_SHUTTER,
+    CommandName.SET_DEGRADED_EL,
+    CommandName.SET_DEGRADED_LOUVERS,
+    CommandName.SET_DEGRADED_SHUTTER,
+    CommandName.SET_LOUVERS,
+    CommandName.SET_NORMAL_EL,
+    CommandName.SET_NORMAL_LOUVERS,
+    CommandName.SET_NORMAL_SHUTTER,
+    CommandName.STATUS_APSCS,
+    CommandName.STATUS_CSCS,
+    CommandName.STATUS_LCS,
+    CommandName.STATUS_LWSCS,
+    CommandName.STATUS_RAD,
+    CommandName.STOP_EL,
+    CommandName.STOP_LOUVERS,
+    CommandName.STOP_SHUTTER,
+]
 
 # Dictionary to look up which LlcName is associated with which sub-system.
 LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}

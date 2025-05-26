@@ -7,6 +7,13 @@ Version History
 ###############
 
 =======
+v0.2.11
+=======
+
+* Add GitHub actions.
+* Improve handling of communication errors between the fixed and rotating parts.
+
+=======
 v0.2.10
 =======
 

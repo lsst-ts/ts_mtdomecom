@@ -26,6 +26,7 @@ import types
 import typing
 import unittest
 
+import pytest
 from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
@@ -421,6 +422,50 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.llc_status
             == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.THCS]
         )
+
+    async def test_communication_error(self) -> None:
+        await self.mtdomecom_com.disconnect()
+        telemetry_callbacks = {
+            mtdomecom.LlcName.AMCS: self.handle_llc_status,
+            mtdomecom.LlcName.APSCS: self.handle_llc_status,
+            mtdomecom.LlcName.CBCS: self.handle_llc_status,
+            mtdomecom.LlcName.CSCS: self.handle_llc_status,
+            mtdomecom.LlcName.LCS: self.handle_llc_status,
+            mtdomecom.LlcName.LWSCS: self.handle_llc_status,
+            mtdomecom.LlcName.MONCS: self.handle_llc_status,
+            mtdomecom.LlcName.RAD: self.handle_llc_status,
+            mtdomecom.LlcName.THCS: self.handle_llc_status,
+        }
+        self.mtdomecom_com = mtdomecom.MTDomeCom(
+            log=self.log,
+            config=types.SimpleNamespace(),
+            simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+            telemetry_callbacks=telemetry_callbacks,
+            start_periodic_tasks=False,
+            communication_error=True,
+        )
+
+        await self.mtdomecom_com.connect()
+        assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
+
+        # Not on the rotating part so should work.
+        await self.mtdomecom_com.status_amcs()
+        assert (
+            self.llc_status
+            == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
+        )
+
+        # On the rotating part so should not work.
+        await self.mtdomecom_com.status_apscs()
+        assert mtdomecom.LlcName.APSCS not in self.mtdomecom_com.lower_level_status
+        assert "exception" in self.llc_status
+        assert (
+            "was not received by the rotating part" in self.llc_status["exception"][-1]
+        )
+
+        with pytest.raises(ValueError) as ve:
+            await self.mtdomecom_com.open_shutter()
+        assert "was not received by the rotating part" in str(ve.value)
 
     async def handle_llc_status(self, status: dict[str, typing.Any]) -> None:
         self.llc_status = status
