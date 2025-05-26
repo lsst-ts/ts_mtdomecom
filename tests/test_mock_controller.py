@@ -48,6 +48,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         self.command_id: typing.Any = -1
         self.data: dict | None = None
         self.log = logging.getLogger("MockTestCase")
+        self.communication_error = False
 
     async def determine_current_tai(self) -> None:
         # Empty for mocking purposes.
@@ -57,6 +58,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
     async def create_mtdomecom_controller(self) -> typing.AsyncGenerator[None, None]:
         async with self.create_server(
             connect_callback=self.connect_callback,
+            communication_error=self.communication_error,
         ) as self.mock_ctrl:
             # Replace the determine_current_tai method with a mock method so
             # that the start_tai value on the mock_ctrl object can be set to
@@ -1461,3 +1463,18 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.data = await self.read()
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
+
+    async def test_communication_error(self) -> None:
+        self.communication_error = True
+        async with self.create_mtdomecom_controller(), self.create_client():
+            for cmd in [
+                mtdomecom.CommandName.STATUS_LCS,
+                mtdomecom.CommandName.OPEN_SHUTTER,
+            ]:
+                await self.write(command=cmd, parameters={})
+                self.data = await self.read()
+                assert mtdomecom.LlcName.APSCS.value not in self.data
+                assert (
+                    self.data["response"]
+                    == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED.value
+                )

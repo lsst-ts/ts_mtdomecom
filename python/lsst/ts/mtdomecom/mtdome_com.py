@@ -207,6 +207,9 @@ class MTDomeCom:
     start_periodic_tasks : `bool`
         Start the periodic tasks or not. Defaults to `True`. Unit tests may set
         this to `False`.
+    communication_error : `bool`
+        Is there a communication error with the rotating part (True) or not
+        (False)? This is for unit tests only. The default is False.
     """
 
     _index_iter = utils.index_generator()
@@ -220,6 +223,7 @@ class MTDomeCom:
             dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None
         ) = None,
         start_periodic_tasks: bool = True,
+        communication_error: bool = False,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
@@ -232,6 +236,9 @@ class MTDomeCom:
 
         # Mock controller, or None if not constructed
         self.mock_ctrl: MockMTDomeController | None = None
+        # Mock a communication error (True) or not (False). To be set by unit
+        # tests only.
+        self.communication_error = communication_error
 
         # Keep the lower level statuses in memory for unit tests.
         self.lower_level_status: dict[LlcName, typing.Any] = {}
@@ -477,7 +484,9 @@ class MTDomeCom:
             self.simulation_mode
             == ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER.value
         )
-        self.mock_ctrl = MockMTDomeController(port=0, log=self.log)
+        self.mock_ctrl = MockMTDomeController(
+            port=0, log=self.log, communication_error=self.communication_error
+        )
         await asyncio.wait_for(self.mock_ctrl.start(), timeout=_TIMEOUT)
 
     async def _stop_mock_ctrl(self) -> None:
@@ -1223,7 +1232,7 @@ class MTDomeCom:
         """
         # Assume that the corresponding callback exists. The check for that is
         # in _start_periodic_tasks where the telemetry task is scheduled.
-        cb = self.telemetry_callbacks[llc_name]
+        cb: typing.Callable = self.telemetry_callbacks[llc_name]
 
         command = CommandName(f"status{llc_name.value}")
         status: dict[str, typing.Any] = {}
@@ -1232,20 +1241,14 @@ class MTDomeCom:
                 status = await self.write_then_read_reply(command=command)
             except Exception as e:
                 self.log.exception(f"Exception requesting status for {llc_name.value}.")
-                await cb(
-                    {
-                        "exception": traceback.TracebackException.from_exception(
-                            e
-                        ).format()
-                    }
-                )  # type: ignore
+                await cb({"exception": traceback.format_exception(e)})
                 return
 
         pre_processed_status = await self._pre_process_status(
             llc_name, status[llc_name]
         )
 
-        # # The timestamp is irrelevant for capacitor banks status.
+        # The timestamp is irrelevant for capacitor banks status.
         if llc_name == LlcName.CBCS and "timestamp" in pre_processed_status:
             del pre_processed_status["timestamp"]
 
