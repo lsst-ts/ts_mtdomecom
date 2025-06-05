@@ -144,7 +144,9 @@ class ApscsStatus(BaseMockStatus):
 
     async def _warn_invalid_state(self, shutter_id: int) -> None:
         self.log.warning(
-            f"Not handling invalid target state {self.target_state[shutter_id]}"
+            f"Not handling invalid combination of start state {self.start_state[shutter_id]}, "
+            f"current state {self.current_state[shutter_id]} and "
+            f"target state {self.target_state[shutter_id]}"
         )
 
     async def _handle_open_or_close_or_stationary(
@@ -231,6 +233,9 @@ class ApscsStatus(BaseMockStatus):
             InternalMotionState.STATIONARY.name,
         ]:
             self.current_state[shutter_id] = MotionState.LP_DISENGAGING.name
+        elif self.current_state[shutter_id] == MotionState.CLOSED.name:
+            # Start condition so ignore.
+            pass
         else:
             await self._warn_invalid_state(shutter_id)
 
