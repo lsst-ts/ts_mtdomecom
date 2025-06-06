@@ -169,7 +169,10 @@ class AmcsStatus(BaseMockStatus):
                 await self._warn_invalid_state()
 
     async def _warn_invalid_state(self) -> None:
-        self.log.warning(f"Not handling invalid target state {self.target_state}")
+        self.log.warning(
+            f"Not handling invalid combination of start state {self.start_state}, "
+            f"current state {self.current_state} and target state {self.target_state}"
+        )
 
     async def _handle_motion(self, current_tai: float) -> None:
         match self.current_state:
@@ -188,6 +191,9 @@ class AmcsStatus(BaseMockStatus):
                     MotionState.CRAWLING.name,
                 ]:
                     self.current_state = MotionState.DEFLATING.name
+                elif self.current_state == MotionState.PARKED.name:
+                    # Start condition so ignore.
+                    pass
                 else:
                     await self._warn_invalid_state()
             case MotionState.DEFLATING.name:
