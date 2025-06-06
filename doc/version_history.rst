@@ -7,6 +7,13 @@ Version History
 ###############
 
 =======
+v0.2.12
+=======
+
+* Avoid unnecessary 'Not handling invalid target state' messages.
+* Ensure that the ApSCS simulator correctly opens and closes.
+
+=======
 v0.2.11
 =======
 
