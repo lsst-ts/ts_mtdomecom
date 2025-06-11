@@ -29,7 +29,16 @@ from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import MotionState
 
 from .encoding_tools import validate
-from .enums import ROTATING_COMMANDS, CommandName, LlcName, ResponseCode
+from .enums import (
+    CSCS_COMMANDS,
+    EL_COMMANDS,
+    LOUVERS_COMMANDS,
+    RAD_COMMANDS,
+    SHUTTER_COMMANDS,
+    CommandName,
+    LlcName,
+    ResponseCode,
+)
 from .mock_llc import (
     AmcsStatus,
     ApscsStatus,
@@ -41,6 +50,11 @@ from .mock_llc import (
     MoncsStatus,
     RadStatus,
     ThcsStatus,
+)
+
+
+ROTATING_COMMANDS = (
+    CSCS_COMMANDS + EL_COMMANDS + LOUVERS_COMMANDS + RAD_COMMANDS + SHUTTER_COMMANDS
 )
 
 
