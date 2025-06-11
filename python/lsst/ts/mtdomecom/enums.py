@@ -20,8 +20,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 __all__ = [
+    "CSCS_COMMANDS",
+    "EL_COMMANDS",
+    "LOUVERS_COMMANDS",
     "POWER_MANAGEMENT_COMMANDS",
-    "ROTATING_COMMANDS",
+    "RAD_COMMANDS",
+    "SHUTTER_COMMANDS",
     "STOP_EL",
     "STOP_FANS",
     "STOP_LOUVERS",
@@ -203,34 +207,38 @@ class ValidSimulationMode(enum.IntEnum):
 
 
 # Commands of the Lower Level Components on the rotating part of the dome.
-ROTATING_COMMANDS = [
-    CommandName.CLOSE_LOUVERS,
-    CommandName.CLOSE_SHUTTER,
+CSCS_COMMANDS = [CommandName.STATUS_CSCS]
+EL_COMMANDS = [
     CommandName.CRAWL_EL,
     CommandName.EXIT_FAULT_EL,
-    CommandName.EXIT_FAULT_LOUVERS,
-    CommandName.EXIT_FAULT_SHUTTER,
     CommandName.GO_STATIONARY_EL,
+    CommandName.MOVE_EL,
+    CommandName.SET_DEGRADED_EL,
+    CommandName.SET_NORMAL_EL,
+    CommandName.STATUS_LWSCS,
+    CommandName.STOP_EL,
+]
+LOUVERS_COMMANDS = [
+    CommandName.CLOSE_LOUVERS,
+    CommandName.EXIT_FAULT_LOUVERS,
     CommandName.GO_STATIONARY_LOUVERS,
+    CommandName.SET_DEGRADED_LOUVERS,
+    CommandName.SET_LOUVERS,
+    CommandName.SET_NORMAL_LOUVERS,
+    CommandName.STATUS_LCS,
+    CommandName.STOP_LOUVERS,
+]
+RAD_COMMANDS = [CommandName.STATUS_RAD]
+SHUTTER_COMMANDS = [
+    CommandName.CLOSE_SHUTTER,
+    CommandName.EXIT_FAULT_SHUTTER,
     CommandName.GO_STATIONARY_SHUTTER,
     CommandName.HOME,
-    CommandName.MOVE_EL,
     CommandName.OPEN_SHUTTER,
     CommandName.RESET_DRIVES_SHUTTER,
-    CommandName.SET_DEGRADED_EL,
-    CommandName.SET_DEGRADED_LOUVERS,
     CommandName.SET_DEGRADED_SHUTTER,
-    CommandName.SET_LOUVERS,
-    CommandName.SET_NORMAL_EL,
-    CommandName.SET_NORMAL_LOUVERS,
     CommandName.SET_NORMAL_SHUTTER,
     CommandName.STATUS_APSCS,
-    CommandName.STATUS_CSCS,
-    CommandName.STATUS_LCS,
-    CommandName.STATUS_LWSCS,
-    CommandName.STATUS_RAD,
-    CommandName.STOP_EL,
-    CommandName.STOP_LOUVERS,
     CommandName.STOP_SHUTTER,
 ]
 

@@ -24,7 +24,6 @@ __all__ = ["COMMANDS_REPLIED_PERIOD", "CommandTime", "MTDomeCom"]
 import asyncio
 import logging
 import math
-import traceback
 import typing
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -242,6 +241,8 @@ class MTDomeCom:
 
         # Keep the lower level statuses in memory for unit tests.
         self.lower_level_status: dict[LlcName, typing.Any] = {}
+        # Keep track of the latest communication error report.
+        self.communication_error_report: dict[str, typing.Any] = {}
 
         # List of periodic tasks to start.
         self.periodic_tasks: list[asyncio.Future] = []
@@ -674,7 +675,15 @@ class MTDomeCom:
                 }.get(response, "is not supported.")
                 message = f"Command {command_name} {error_suffix}"
                 self.log.debug(f"{message} -> {command_name=}, {data=}")
-                raise ValueError(message)
+                exception = ValueError(message)
+                self.communication_error_report = {
+                    "command_name": CommandName(command_name),
+                    "exception": exception,
+                    "response_code": ResponseCode(response),
+                }
+                raise exception
+            else:
+                self.communication_error_report = {}
 
             return data
 
@@ -1239,9 +1248,9 @@ class MTDomeCom:
         while llc_name not in status:
             try:
                 status = await self.write_then_read_reply(command=command)
-            except Exception as e:
+            except Exception:
                 self.log.exception(f"Exception requesting status for {llc_name.value}.")
-                await cb({"exception": traceback.format_exception(e)})
+                await cb(self.communication_error_report)
                 return
 
         pre_processed_status = await self._pre_process_status(
