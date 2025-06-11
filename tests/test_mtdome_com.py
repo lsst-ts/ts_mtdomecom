@@ -458,9 +458,13 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         # On the rotating part so should not work.
         await self.mtdomecom_com.status_apscs()
         assert mtdomecom.LlcName.APSCS not in self.mtdomecom_com.lower_level_status
+        assert "command_name" in self.llc_status
         assert "exception" in self.llc_status
+        assert "response_code" in self.llc_status
+        assert self.llc_status["command_name"] == mtdomecom.CommandName.STATUS_APSCS
         assert (
-            "was not received by the rotating part" in self.llc_status["exception"][-1]
+            self.llc_status["response_code"]
+            == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED
         )
 
         with pytest.raises(ValueError) as ve:
