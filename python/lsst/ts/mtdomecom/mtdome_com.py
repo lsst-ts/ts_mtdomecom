@@ -212,6 +212,8 @@ class MTDomeCom:
     communication_error : `bool`
         Is there a communication error with the rotating part (True) or not
         (False)? This is for unit tests only. The default is False.
+    timeout_error : `bool`
+        Do command replies timeout of not? The default is False.
     """
 
     _index_iter = utils.index_generator()
@@ -226,6 +228,7 @@ class MTDomeCom:
         ) = None,
         start_periodic_tasks: bool = True,
         communication_error: bool = False,
+        timeout_error: bool = False,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
@@ -241,6 +244,9 @@ class MTDomeCom:
         # Mock a communication error (True) or not (False). To be set by unit
         # tests only.
         self.communication_error = communication_error
+        # Mock a timeout error (True) or not (False). To be set by unit
+        # tests only.
+        self.timeout_error = timeout_error
 
         # Keep the lower level statuses in memory for unit tests.
         self.lower_level_status: dict[LlcName, typing.Any] = {}
@@ -503,7 +509,10 @@ class MTDomeCom:
             == ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER.value
         )
         self.mock_ctrl = MockMTDomeController(
-            port=0, log=self.log, communication_error=self.communication_error
+            port=0,
+            log=self.log,
+            communication_error=self.communication_error,
+            timeout_error=self.timeout_error,
         )
         await asyncio.wait_for(self.mock_ctrl.start(), timeout=_TIMEOUT)
 
@@ -667,7 +676,17 @@ class MTDomeCom:
             if command not in disabled_commands:
                 self.log.debug(f"Sending {command_dict=}.")
                 await self.client.write_json(data=command_dict)
-                data = await asyncio.wait_for(self.client.read_json(), timeout=_TIMEOUT)
+                try:
+                    data = await asyncio.wait_for(
+                        self.client.read_json(), timeout=_TIMEOUT
+                    )
+                except TimeoutError as exc:
+                    self.communication_error_report = {
+                        "command_name": CommandName(command_name),
+                        "exception": exc,
+                        "response_code": ResponseCode.UNSUPPORTED,
+                    }
+                    raise exc
                 self.log.debug(f"Received {command_name=}, {data=}.")
 
                 if "commandId" not in data:
@@ -1388,6 +1407,14 @@ class MTDomeCom:
                 )
         for command_id in commands_to_remove:
             self.commands_without_reply.pop(command_id)
+        if len(commands_still_waiting) > 0:
+            self.log.warning(
+                f"Still waiting for replies for the following command_ids: {commands_still_waiting}."
+            )
+        if len(commands_to_remove) > 0:
+            self.log.error(
+                f"Giving up waiting for replies for the following command_ids: {commands_to_remove}."
+            )
 
     def remove_keys_from_dict(
         self, dict_with_too_many_keys: dict[str, typing.Any], keys_to_remove: set[str]
