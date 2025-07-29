@@ -171,6 +171,9 @@ _STATUS_POKE_PERIODS = {
 # be issued.
 _COMMAND_QUEUE_PERIOD = 1.0
 
+# Interval to sleep [sec] while running periodic tasks.
+SLEEP_INTERVAL = 1.0
+
 
 @dataclass
 class CommandTime:
@@ -246,6 +249,7 @@ class MTDomeCom:
 
         # List of periodic tasks to start.
         self.periodic_tasks: list[asyncio.Future] = []
+        self.run_periodic_tasks = False
 
         # Keep a lock so only one remote command can be executed at a time.
         self.communication_lock = asyncio.Lock()
@@ -381,13 +385,15 @@ class MTDomeCom:
             if llc_name in self.telemetry_callbacks:
                 self._status_command_counts[llc_name] = 0
 
+        self.run_periodic_tasks = True
         self.periodic_tasks.append(
             asyncio.create_task(
                 self.one_periodic_task(
                     self.query_status,
                     _STATUS_POKE_PERIOD,
                     wrap_with_async_task=False,
-                )
+                ),
+                name="query_status",
             )
         )
 
@@ -395,7 +401,8 @@ class MTDomeCom:
             asyncio.create_task(
                 self.one_periodic_task(
                     self.check_all_commands_have_replies, COMMANDS_REPLIED_PERIOD
-                )
+                ),
+                name="check_all_commands_have_replies",
             )
         )
 
@@ -403,7 +410,8 @@ class MTDomeCom:
             asyncio.create_task(
                 self.one_periodic_task(
                     self.process_command_queue, _COMMAND_QUEUE_PERIOD
-                )
+                ),
+                name="process_command_queue",
             )
         )
 
@@ -451,7 +459,7 @@ class MTDomeCom:
         self.log.debug(f"Starting periodic task {method=} with {interval=}")
         try:
             background_tasks = set()
-            while True:
+            while self.run_periodic_tasks:
                 if wrap_with_async_task:
                     task = asyncio.create_task(method())
                     background_tasks.add(task)
@@ -459,21 +467,30 @@ class MTDomeCom:
                     task.add_done_callback(background_tasks.discard)
                 else:
                     await method()
-                await asyncio.sleep(interval)
-        except asyncio.CancelledError:
-            # Ignore because the task was canceled on purpose.
-            pass
-        except Exception as e:
+
+                # Don't sleep long intervals but instead break up in small
+                # steps so it can be interrupted if necessary.
+                interval_slept = 0.0
+                while interval_slept < interval and self.run_periodic_tasks:
+                    await asyncio.sleep(_STATUS_POKE_PERIOD)
+                    interval_slept += _STATUS_POKE_PERIOD
+        except BaseException as e:
             self.log.exception(f"one_periodic_task({method}) has stopped.")
             raise e
 
     async def _cancel_periodic_tasks(self) -> None:
         """Cancel all periodic tasks."""
+        self.run_periodic_tasks = False
         while self.periodic_tasks:
-            periodic_task = self.periodic_tasks.pop()
-            self.log.debug(f"Cancelling periodic task {periodic_task=!r}.")
-            periodic_task.cancel()
-            await periodic_task
+            periodic_task: asyncio.Future = self.periodic_tasks.pop()
+            self.log.debug(f"Waiting for periodic task {periodic_task=!r} to be done.")
+            try:
+                async with asyncio.timeout(_TIMEOUT):
+                    await periodic_task
+            except TimeoutError:
+                self.log.debug(f"Canceling periodic task {periodic_task=!r}.")
+                periodic_task.cancel()
+                await periodic_task
 
     async def _start_mock_ctrl(self) -> None:
         """Start the mock controller.
@@ -627,9 +644,11 @@ class MTDomeCom:
             command=command, tai=utils.current_tai()
         )
         command_name = command.value
-        command_dict = dict(
-            commandId=command_id, command=command_name, parameters=params
-        )
+        command_dict = {
+            "commandId": command_id,
+            "command": command_name,
+            "parameters": params,
+        }
         async with self.communication_lock:
             # For the non-status command, reset the flag.
             if not command_name.startswith("status"):
