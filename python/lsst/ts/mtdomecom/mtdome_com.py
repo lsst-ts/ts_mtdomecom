@@ -647,6 +647,11 @@ class MTDomeCom:
             A dict of the form {"response": ResponseCode, "timeout":
             TimeoutValue} where "response" can be zero for "OK" or non-zero
             for any other situation.
+
+        Raises
+        ------
+        TimeoutError
+            If waiting for a command reply takes longer than _TIMEOUT seconds.
         """
         command_id = next(self._index_iter)
         self.commands_without_reply[command_id] = CommandTime(
@@ -1392,19 +1397,13 @@ class MTDomeCom:
         """
         current_tai = utils.current_tai()
         commands_to_remove: set[int] = set()
+        commands_still_waiting: set[int] = set()
         for command_id in self.commands_without_reply:
             command_time = self.commands_without_reply[command_id]
             if current_tai - command_time.tai >= 2.0 * COMMANDS_REPLIED_PERIOD:
-                self.log.error(
-                    f"Command {command_time.command} with {command_id=} has not received a "
-                    f"reply during at least {2 * COMMANDS_REPLIED_PERIOD} seconds. Removing."
-                )
                 commands_to_remove.add(command_id)
             elif current_tai - command_time.tai >= COMMANDS_REPLIED_PERIOD:
-                self.log.warning(
-                    f"Command {command_time.command} with {command_id=} has not received a "
-                    f"reply during at least {COMMANDS_REPLIED_PERIOD} seconds. Still waiting."
-                )
+                commands_still_waiting.add(command_id)
         for command_id in commands_to_remove:
             self.commands_without_reply.pop(command_id)
         if len(commands_still_waiting) > 0:
