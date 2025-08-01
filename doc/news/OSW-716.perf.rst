@@ -1,1 +1,0 @@
-Stop running tasks with a condition instead of canceling them.

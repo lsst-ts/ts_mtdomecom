@@ -8,6 +8,17 @@ Version History
 
 .. towncrier release notes start
 
+v0.2.14 (2025-08-01)
+====================
+
+Performance Enhancement
+-----------------------
+
+- Handle timeout errors with the fixed cRIO better. (`OSW-716 <https://rubinobs.atlassian.net//browse/OSW-716>`_)
+- Stop running tasks with a condition instead of canceling them. (`OSW-716 <https://rubinobs.atlassian.net//browse/OSW-716>`_)
+- Reduced the number of error and warning messages for commands that have not received a reply. (`OSW-716 <https://rubinobs.atlassian.net//browse/OSW-716>`_)
+
+
 v0.2.13 (2025-06-11)
 ====================
 
