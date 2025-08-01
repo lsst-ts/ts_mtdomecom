@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 import contextlib
 import logging
 import math
@@ -32,7 +33,7 @@ from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OperationalMode
 _CURRENT_TAI = 100001
 
 # Default timeout for reads
-DEFAULT_TIMEOUT = 1.0
+DEFAULT_TIMEOUT = 5.0
 # Long timeout in case of a mock network issue
 SLOW_NETWORK_TIMEOUT = mtdomecom.MockMTDomeController.SLOW_NETWORK_SLEEP + 1.0
 
@@ -49,6 +50,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         self.data: dict | None = None
         self.log = logging.getLogger("MockTestCase")
         self.communication_error = False
+        self.timeout_error = False
 
     async def determine_current_tai(self) -> None:
         # Empty for mocking purposes.
@@ -59,6 +61,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         async with self.create_server(
             connect_callback=self.connect_callback,
             communication_error=self.communication_error,
+            timeout_error=self.timeout_error,
         ) as self.mock_ctrl:
             # Replace the determine_current_tai method with a mock method so
             # that the start_tai value on the mock_ctrl object can be set to
@@ -94,7 +97,8 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         data : `dict`
             A dictionary with objects representing the string read.
         """
-        data = await self.client.read_json()
+        async with asyncio.timeout(timeout):
+            data = await self.client.read_json()
         if assert_command_id:
             assert data["commandId"] == self.command_id
         return data
@@ -1478,3 +1482,14 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                     self.data["response"]
                     == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED.value
                 )
+
+    async def test_timeout_error(self) -> None:
+        self.timeout_error = True
+        async with self.create_mtdomecom_controller(), self.create_client():
+            for cmd in [
+                mtdomecom.CommandName.STATUS_AMCS,
+                mtdomecom.CommandName.PARK,
+            ]:
+                await self.write(command=cmd, parameters={})
+                with pytest.raises(TimeoutError):
+                    self.data = await self.read()

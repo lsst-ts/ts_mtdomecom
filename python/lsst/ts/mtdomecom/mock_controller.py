@@ -53,9 +53,13 @@ from .mock_llc import (
 )
 
 
+# Commands for the rotating part of the MTDome.
 ROTATING_COMMANDS = (
     CSCS_COMMANDS + EL_COMMANDS + LOUVERS_COMMANDS + RAD_COMMANDS + SHUTTER_COMMANDS
 )
+
+# Wait time [sec] before sending a reply. This mocks a network timeout.
+REPLY_WAIT_TIME = 600
 
 
 class MockMTDomeController(tcpip.OneClientReadLoopServer):
@@ -72,6 +76,8 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
     communication_error : `bool`
         Is there a communication error with the rotating part (True) or not
         (False)? This is for unit tests only. The default is False.
+    timeout_error : `bool`
+        Do command replies timeout of not? The default is False.
 
     Notes
     -----
@@ -111,6 +117,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         log: logging.Logger,
         connect_callback: None | tcpip.ConnectCallbackType = None,
         communication_error: bool = False,
+        timeout_error: bool = False,
     ) -> None:
         super().__init__(
             port=port,
@@ -187,6 +194,9 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         # Mock a communication error (True) or not (False). To be set by unit
         # tests only.
         self.communication_error = communication_error
+        # Mock a timeout error (True) or not (False). To be set by unit
+        # tests only.
+        self.timeout_error = timeout_error
 
         self.read_task: asyncio.Future | None = None
 
@@ -241,6 +251,9 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             The data to write.
         """
         data = {"commandId": self._command_id, **data}
+        if self.timeout_error:
+            self.log.debug(f"Mocking a timeout. Waiting {REPLY_WAIT_TIME} seconds.")
+            await asyncio.sleep(REPLY_WAIT_TIME)
         await self.write_json(data)
 
     async def read_and_dispatch(self) -> None:
