@@ -171,6 +171,9 @@ _STATUS_POKE_PERIODS = {
 # be issued.
 _COMMAND_QUEUE_PERIOD = 1.0
 
+# Interval to sleep [sec] while running periodic tasks.
+SLEEP_INTERVAL = 1.0
+
 
 @dataclass
 class CommandTime:
@@ -209,6 +212,8 @@ class MTDomeCom:
     communication_error : `bool`
         Is there a communication error with the rotating part (True) or not
         (False)? This is for unit tests only. The default is False.
+    timeout_error : `bool`
+        Do command replies timeout of not? The default is False.
     """
 
     _index_iter = utils.index_generator()
@@ -223,6 +228,7 @@ class MTDomeCom:
         ) = None,
         start_periodic_tasks: bool = True,
         communication_error: bool = False,
+        timeout_error: bool = False,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
@@ -238,6 +244,9 @@ class MTDomeCom:
         # Mock a communication error (True) or not (False). To be set by unit
         # tests only.
         self.communication_error = communication_error
+        # Mock a timeout error (True) or not (False). To be set by unit
+        # tests only.
+        self.timeout_error = timeout_error
 
         # Keep the lower level statuses in memory for unit tests.
         self.lower_level_status: dict[LlcName, typing.Any] = {}
@@ -246,6 +255,7 @@ class MTDomeCom:
 
         # List of periodic tasks to start.
         self.periodic_tasks: list[asyncio.Future] = []
+        self.run_periodic_tasks = False
 
         # Keep a lock so only one remote command can be executed at a time.
         self.communication_lock = asyncio.Lock()
@@ -381,13 +391,15 @@ class MTDomeCom:
             if llc_name in self.telemetry_callbacks:
                 self._status_command_counts[llc_name] = 0
 
+        self.run_periodic_tasks = True
         self.periodic_tasks.append(
             asyncio.create_task(
                 self.one_periodic_task(
                     self.query_status,
                     _STATUS_POKE_PERIOD,
                     wrap_with_async_task=False,
-                )
+                ),
+                name="query_status",
             )
         )
 
@@ -395,7 +407,8 @@ class MTDomeCom:
             asyncio.create_task(
                 self.one_periodic_task(
                     self.check_all_commands_have_replies, COMMANDS_REPLIED_PERIOD
-                )
+                ),
+                name="check_all_commands_have_replies",
             )
         )
 
@@ -403,7 +416,8 @@ class MTDomeCom:
             asyncio.create_task(
                 self.one_periodic_task(
                     self.process_command_queue, _COMMAND_QUEUE_PERIOD
-                )
+                ),
+                name="process_command_queue",
             )
         )
 
@@ -451,7 +465,7 @@ class MTDomeCom:
         self.log.debug(f"Starting periodic task {method=} with {interval=}")
         try:
             background_tasks = set()
-            while True:
+            while self.run_periodic_tasks:
                 if wrap_with_async_task:
                     task = asyncio.create_task(method())
                     background_tasks.add(task)
@@ -459,21 +473,30 @@ class MTDomeCom:
                     task.add_done_callback(background_tasks.discard)
                 else:
                     await method()
-                await asyncio.sleep(interval)
-        except asyncio.CancelledError:
-            # Ignore because the task was canceled on purpose.
-            pass
-        except Exception as e:
+
+                # Don't sleep long intervals but instead break up in small
+                # steps so it can be interrupted if necessary.
+                interval_slept = 0.0
+                while interval_slept < interval and self.run_periodic_tasks:
+                    await asyncio.sleep(_STATUS_POKE_PERIOD)
+                    interval_slept += _STATUS_POKE_PERIOD
+        except BaseException as e:
             self.log.exception(f"one_periodic_task({method}) has stopped.")
             raise e
 
     async def _cancel_periodic_tasks(self) -> None:
         """Cancel all periodic tasks."""
+        self.run_periodic_tasks = False
         while self.periodic_tasks:
-            periodic_task = self.periodic_tasks.pop()
-            self.log.debug(f"Cancelling periodic task {periodic_task=!r}.")
-            periodic_task.cancel()
-            await periodic_task
+            periodic_task: asyncio.Future = self.periodic_tasks.pop()
+            self.log.debug(f"Waiting for periodic task {periodic_task=!r} to be done.")
+            try:
+                async with asyncio.timeout(_TIMEOUT):
+                    await periodic_task
+            except TimeoutError:
+                self.log.debug(f"Canceling periodic task {periodic_task=!r}.")
+                periodic_task.cancel()
+                await periodic_task
 
     async def _start_mock_ctrl(self) -> None:
         """Start the mock controller.
@@ -486,7 +509,10 @@ class MTDomeCom:
             == ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER.value
         )
         self.mock_ctrl = MockMTDomeController(
-            port=0, log=self.log, communication_error=self.communication_error
+            port=0,
+            log=self.log,
+            communication_error=self.communication_error,
+            timeout_error=self.timeout_error,
         )
         await asyncio.wait_for(self.mock_ctrl.start(), timeout=_TIMEOUT)
 
@@ -621,15 +647,22 @@ class MTDomeCom:
             A dict of the form {"response": ResponseCode, "timeout":
             TimeoutValue} where "response" can be zero for "OK" or non-zero
             for any other situation.
+
+        Raises
+        ------
+        TimeoutError
+            If waiting for a command reply takes longer than _TIMEOUT seconds.
         """
         command_id = next(self._index_iter)
         self.commands_without_reply[command_id] = CommandTime(
             command=command, tai=utils.current_tai()
         )
         command_name = command.value
-        command_dict = dict(
-            commandId=command_id, command=command_name, parameters=params
-        )
+        command_dict = {
+            "commandId": command_id,
+            "command": command_name,
+            "parameters": params,
+        }
         async with self.communication_lock:
             # For the non-status command, reset the flag.
             if not command_name.startswith("status"):
@@ -648,7 +681,17 @@ class MTDomeCom:
             if command not in disabled_commands:
                 self.log.debug(f"Sending {command_dict=}.")
                 await self.client.write_json(data=command_dict)
-                data = await asyncio.wait_for(self.client.read_json(), timeout=_TIMEOUT)
+                try:
+                    data = await asyncio.wait_for(
+                        self.client.read_json(), timeout=_TIMEOUT
+                    )
+                except TimeoutError as exc:
+                    self.communication_error_report = {
+                        "command_name": CommandName(command_name),
+                        "exception": exc,
+                        "response_code": ResponseCode.UNSUPPORTED,
+                    }
+                    raise exc
                 self.log.debug(f"Received {command_name=}, {data=}.")
 
                 if "commandId" not in data:
@@ -1354,21 +1397,23 @@ class MTDomeCom:
         """
         current_tai = utils.current_tai()
         commands_to_remove: set[int] = set()
+        commands_still_waiting: set[int] = set()
         for command_id in self.commands_without_reply:
             command_time = self.commands_without_reply[command_id]
             if current_tai - command_time.tai >= 2.0 * COMMANDS_REPLIED_PERIOD:
-                self.log.error(
-                    f"Command {command_time.command} with {command_id=} has not received a "
-                    f"reply during at least {2 * COMMANDS_REPLIED_PERIOD} seconds. Removing."
-                )
                 commands_to_remove.add(command_id)
             elif current_tai - command_time.tai >= COMMANDS_REPLIED_PERIOD:
-                self.log.warning(
-                    f"Command {command_time.command} with {command_id=} has not received a "
-                    f"reply during at least {COMMANDS_REPLIED_PERIOD} seconds. Still waiting."
-                )
+                commands_still_waiting.add(command_id)
         for command_id in commands_to_remove:
             self.commands_without_reply.pop(command_id)
+        if len(commands_still_waiting) > 0:
+            self.log.warning(
+                f"Still waiting for replies for the following command_ids: {commands_still_waiting}."
+            )
+        if len(commands_to_remove) > 0:
+            self.log.error(
+                f"Giving up waiting for replies for the following command_ids: {commands_to_remove}."
+            )
 
     def remove_keys_from_dict(
         self, dict_with_too_many_keys: dict[str, typing.Any], keys_to_remove: set[str]

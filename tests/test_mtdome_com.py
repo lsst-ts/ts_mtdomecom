@@ -25,6 +25,7 @@ import math
 import types
 import typing
 import unittest
+from unittest.mock import patch
 
 import pytest
 from lsst.ts import mtdomecom, utils
@@ -470,6 +471,38 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         with pytest.raises(ValueError) as ve:
             await self.mtdomecom_com.open_shutter()
         assert "was not received by the rotating part" in str(ve.value)
+
+    @patch("lsst.ts.mtdomecom.mtdome_com._TIMEOUT", 3.0)
+    async def test_timeout_error(self) -> None:
+        await self.mtdomecom_com.disconnect()
+        telemetry_callbacks = {
+            mtdomecom.LlcName.AMCS: self.handle_llc_status,
+            mtdomecom.LlcName.APSCS: self.handle_llc_status,
+            mtdomecom.LlcName.CBCS: self.handle_llc_status,
+            mtdomecom.LlcName.CSCS: self.handle_llc_status,
+            mtdomecom.LlcName.LCS: self.handle_llc_status,
+            mtdomecom.LlcName.LWSCS: self.handle_llc_status,
+            mtdomecom.LlcName.MONCS: self.handle_llc_status,
+            mtdomecom.LlcName.RAD: self.handle_llc_status,
+            mtdomecom.LlcName.THCS: self.handle_llc_status,
+        }
+        self.mtdomecom_com = mtdomecom.MTDomeCom(
+            log=self.log,
+            config=types.SimpleNamespace(),
+            simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+            telemetry_callbacks=telemetry_callbacks,
+            start_periodic_tasks=False,
+        )
+
+        await self.mtdomecom_com.connect()
+        self.mtdomecom_com.mock_ctrl.timeout_error = True
+        assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
+
+        await self.mtdomecom_com.status_amcs()
+        assert "exception" in self.llc_status
+
+        with pytest.raises(TimeoutError):
+            await self.mtdomecom_com.park()
 
     async def handle_llc_status(self, status: dict[str, typing.Any]) -> None:
         self.llc_status = status
