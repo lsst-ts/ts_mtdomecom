@@ -1,1 +1,0 @@
-Reduced the number of error and warning messages for commands that have not received a reply.
