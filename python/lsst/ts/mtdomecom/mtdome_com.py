@@ -480,6 +480,9 @@ class MTDomeCom:
                 while interval_slept < interval and self.run_periodic_tasks:
                     await asyncio.sleep(_STATUS_POKE_PERIOD)
                     interval_slept += _STATUS_POKE_PERIOD
+        except asyncio.CancelledError:
+            # Ignore task cancellation.
+            self.log.warning(f"one_periodic_task({method}) has been cancelled.")
         except BaseException as e:
             self.log.exception(f"one_periodic_task({method}) has stopped.")
             raise e
@@ -492,7 +495,10 @@ class MTDomeCom:
             self.log.debug(f"Waiting for periodic task {periodic_task=!r} to be done.")
             try:
                 async with asyncio.timeout(_TIMEOUT):
-                    await periodic_task
+                    # Need to cancel the task here because waiting for it to
+                    # stop by itself may take a long time in case of network
+                    # or connection issues.
+                    periodic_task.cancel()
             except TimeoutError:
                 self.log.debug(f"Canceling periodic task {periodic_task=!r}.")
                 periodic_task.cancel()
@@ -682,9 +688,8 @@ class MTDomeCom:
                 self.log.debug(f"Sending {command_dict=}.")
                 await self.client.write_json(data=command_dict)
                 try:
-                    data = await asyncio.wait_for(
-                        self.client.read_json(), timeout=_TIMEOUT
-                    )
+                    async with asyncio.timeout(_TIMEOUT):
+                        data = await self.client.read_json()
                 except TimeoutError as exc:
                     self.communication_error_report = {
                         "command_name": CommandName(command_name),
@@ -692,6 +697,12 @@ class MTDomeCom:
                         "response_code": ResponseCode.UNSUPPORTED,
                     }
                     raise exc
+                except asyncio.CancelledError:
+                    # Ignore task cancellation.
+                    self.log.warning(
+                        f"Waiting for reply to {command_name} was cancelled."
+                    )
+                    data = REPLY_DATA_FOR_DISABLED_COMMANDS
                 self.log.debug(f"Received {command_name=}, {data=}.")
 
                 if "commandId" not in data:
