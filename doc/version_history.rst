@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.2.15 (2025-08-08)
+====================
+
+Performance Enhancement
+-----------------------
+
+- Handle CancelledError better. (`OSW-806 <https://rubinobs.atlassian.net//browse/OSW-806>`_)
+
+
 v0.2.14 (2025-08-01)
 ====================
 
