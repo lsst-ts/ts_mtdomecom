@@ -26,23 +26,44 @@ import logging
 import numpy as np
 from lsst.ts.xml.enums.MTDome import MotionState
 
-from ..constants import THCS_NUM_SENSORS
+from ..constants import (
+    THCS_NUM_CABINET_TEMPERATURES,
+    THCS_NUM_MOTOR_COIL_TEMPERATURES,
+    THCS_NUM_MOTOR_DRIVE_TEMPERATURES,
+    THCS_NUM_SENSORS,
+)
 from ..enums import InternalMotionState
 from .base_mock_llc import BaseMockStatus
 
 
+# TODO OSW-862 Remove all references to the old temperature schema.
 class ThcsStatus(BaseMockStatus):
     """Represents the status of the Thermal Control System in simulation
     mode.
+
+    Parameters
+    ----------
+    new_thermal_schema : `bool`
+        Is the new thermal schema used (True) or not (False, the default).
+        If True, the temperature values are split over their repspective
+        items. If False, all temperatures are reported in one item.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, new_thermal_schema: bool = False) -> None:
         super().__init__()
         self.log = logging.getLogger("MockThcsStatus")
         self.messages = [{"code": 0, "description": "No Errors"}]
         self.temperature = np.zeros(THCS_NUM_SENSORS, dtype=float)
+        self.drive_temperature = np.zeros(
+            THCS_NUM_MOTOR_DRIVE_TEMPERATURES, dtype=float
+        )
+        self.motor_coil_temperature = np.zeros(
+            THCS_NUM_MOTOR_COIL_TEMPERATURES, dtype=float
+        )
+        self.cabinet_temperature = np.zeros(THCS_NUM_CABINET_TEMPERATURES, dtype=float)
         self.current_state = MotionState.DISABLED.name
         self.target_state = MotionState.DISABLED.name
+        self.new_thermal_schema = new_thermal_schema
 
     async def evaluate_state(self) -> None:
         """Evaluate the state and perform a state transition if necessary."""
@@ -72,9 +93,16 @@ class ThcsStatus(BaseMockStatus):
                 "status": self.current_state,
                 "operationalMode": self.operational_mode.name,
             },
-            "temperature": self.temperature.tolist(),
             "timestampUTC": current_tai,
         }
+        if not self.new_thermal_schema:
+            self.llc_status["temperature"] = self.temperature.tolist()
+        else:
+            self.llc_status["driveTemperature"] = self.drive_temperature.tolist()
+            self.llc_status["motorCoilTemperature"] = (
+                self.motor_coil_temperature.tolist()
+            )
+            self.llc_status["cabinetTemperature"] = self.cabinet_temperature.tolist()
         self.log.debug(f"thcs_state = {self.llc_status}")
 
     async def set_temperature(self, temperature: float, current_tai: float) -> None:
@@ -91,6 +119,9 @@ class ThcsStatus(BaseMockStatus):
         """
         self.command_time_tai = current_tai
         self.temperature[:] = temperature
+        self.drive_temperature[:] = temperature
+        self.motor_coil_temperature[:] = temperature
+        self.cabinet_temperature[:] = temperature
 
     async def start_cooling(self, current_tai: float) -> None:
         """Start cooling.

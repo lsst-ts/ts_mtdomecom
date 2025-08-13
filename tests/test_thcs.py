@@ -58,3 +58,19 @@ class ThcsTestCase(unittest.IsolatedAsyncioTestCase):
         await thcs.evaluate_state()
         assert thcs.current_state == MotionState.DISABLED.name
         assert thcs.target_state == MotionState.DISABLED.name
+
+    # TODO OSW-862 Remove all references to the old temperature schema.
+    async def test_new_temperature_schema(self) -> None:
+        thcs = mtdomecom.mock_llc.ThcsStatus(new_thermal_schema=False)
+        await thcs.determine_status(current_tai=1.0)
+        assert "temperature" in thcs.llc_status
+        assert "driveTemperature" not in thcs.llc_status
+        assert "motorCoilTemperature" not in thcs.llc_status
+        assert "cabinetTemperature" not in thcs.llc_status
+
+        thcs = mtdomecom.mock_llc.ThcsStatus(new_thermal_schema=True)
+        await thcs.determine_status(current_tai=1.0)
+        assert "temperature" not in thcs.llc_status
+        assert "driveTemperature" in thcs.llc_status
+        assert "motorCoilTemperature" in thcs.llc_status
+        assert "cabinetTemperature" in thcs.llc_status
