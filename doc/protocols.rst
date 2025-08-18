@@ -153,6 +153,9 @@ This is the command schema.
 It looks rather complex since it covers all available commands (including the "config" command), however otherwise 24 separate schemas would need to be created.
 For a full list of the commands and their parameters, see `Lower Level Commands`_.
 
+Note that a transition is ongoing to improve the reporting of the azimith rotation drive temperatures and other temperatures.
+Until that transition is done, there will be an old (i.e. current) status schema for both AMCS and ThCS and a new one.
+
 .. _Lower Level Commands: ./commands.html
 
 .. literalinclude:: ../python/lsst/ts/mtdomecom/schema/command.py
@@ -163,10 +166,18 @@ This is the response schema.
 .. literalinclude:: ../python/lsst/ts/mtdomecom/schema/response.py
    :language: python
 
-This is the AMCS status schema.
 
-.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/amcs_status.py
-   :language: python
+This is the old AMCS status schema.
+
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/amcs_status.json
+   :language: json
+
+
+This is the new AMCS status schema.
+
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/amcs_status_new.json
+   :language: json
+
 
 This is the ApSCS status schema.
 
@@ -204,7 +215,13 @@ This is the RAD status schema.
    :language: python
 
 
-This is the ThCS status schema.
+This is the old ThCS status schema.
 
-.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/thcs_status.py
-   :language: python
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/thcs_status.json
+   :language: json
+
+
+This is the new ThCS status schema.
+
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/thcs_status_new.json
+   :language: json

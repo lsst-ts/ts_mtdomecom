@@ -37,9 +37,14 @@ MAX_SPEED = 4.0
 START_TAI = 10001.0
 
 
+# TODO OSW-862 Remove all references to the old temperature schema.
 class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
     async def prepare_amcs(
-        self, start_position: float, max_speed: float, start_tai: float
+        self,
+        start_position: float,
+        max_speed: float,
+        start_tai: float,
+        new_thermal_schema: bool = False,
     ) -> None:
         """Prepare the AmcsStatus for future commands.
 
@@ -51,8 +56,14 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             The maximum allowed speed [deg/s].
         start_tai: `float`
             The start TAI time.
+        new_thermal_schema : `bool`
+            Is the new thermal schema used (True) or not (False, the default).
+            If True, no `driveTemperature` is included in the status since
+            that is then part of the ThCS status.
         """
-        self.amcs = mtdomecom.mock_llc.AmcsStatus(start_tai=start_tai)
+        self.amcs = mtdomecom.mock_llc.AmcsStatus(
+            start_tai=start_tai, new_thermal_schema=new_thermal_schema
+        )
         self.amcs.position_actual = math.radians(start_position)
         self.amcs.vmax = math.radians(max_speed)
         self.amcs.start_tai = start_tai
@@ -64,6 +75,7 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         expected_position: float,
         expected_velocity: float,
         expected_motion_state: MotionState,
+        new_thermal_schema: bool = False,
     ) -> None:
         """Verify the position of the AmcsStatus at the given TAI
         time.
@@ -78,6 +90,10 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             The expected velocity at the given TAI time [deg/s].
         expected_motion_state: `float`
             The expected motion state at the given TAI time.
+        new_thermal_schema : `bool`
+            Is the new thermal schema used (True) or not (False, the default).
+            If True, no `driveTemperature` is included in the status since
+            that is then part of the ThCS status.
         """
         await self.amcs.determine_status(current_tai=tai)
         assert math.degrees(self.amcs.llc_status["positionActual"]) == pytest.approx(
@@ -93,6 +109,10 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         elif expected_motion_state == MotionState.CRAWLING:
             expected_drive_current = [AMCS_CURRENT_PER_MOTOR_CRAWLING] * AMCS_NUM_MOTORS
         assert expected_drive_current == self.amcs.llc_status["driveCurrentActual"]
+        if not new_thermal_schema:
+            assert "driveTemperature" in self.amcs.llc_status
+        else:
+            assert "driveTemperature" not in self.amcs.llc_status
 
     async def verify_move_duration(
         self,
@@ -884,4 +904,35 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             expected_position=0.0,
             expected_velocity=0.0,
             expected_motion_state=MotionState.STOPPED,
+        )
+
+    async def test_new_temperature_schema(self) -> None:
+        new_thermal_schema = False
+        await self.prepare_amcs(
+            start_position=0.0,
+            max_speed=0.0,
+            start_tai=0.0,
+            new_thermal_schema=new_thermal_schema,
+        )
+        await self.verify_amcs_state(
+            tai=1.0,
+            expected_position=0.0,
+            expected_velocity=0.0,
+            expected_motion_state=MotionState.STOPPED,
+            new_thermal_schema=new_thermal_schema,
+        )
+
+        new_thermal_schema = True
+        await self.prepare_amcs(
+            start_position=0.0,
+            max_speed=0.0,
+            start_tai=0.0,
+            new_thermal_schema=new_thermal_schema,
+        )
+        await self.verify_amcs_state(
+            tai=1.0,
+            expected_position=0.0,
+            expected_velocity=0.0,
+            expected_motion_state=MotionState.STOPPED,
+            new_thermal_schema=new_thermal_schema,
         )

@@ -62,6 +62,7 @@ ROTATING_COMMANDS = (
 REPLY_WAIT_TIME = 600
 
 
+# TODO OSW-862 Remove all references to the old temperature schema.
 class MockMTDomeController(tcpip.OneClientReadLoopServer):
     """Mock MTDome Controller that talks over TCP/IP.
 
@@ -78,6 +79,11 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         (False)? This is for unit tests only. The default is False.
     timeout_error : `bool`
         Do command replies timeout of not? The default is False.
+    new_thermal_schema : `bool`
+        Is the new thermal schema used (True) or not (False, the default).
+        If True, the temperature values only occur in the ThCS telemetry and
+        are split over their repspective items. If False, all temperatures are
+        reported in one item in both AMCS and ThCS telemetry.
 
     Notes
     -----
@@ -118,6 +124,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         connect_callback: None | tcpip.ConnectCallbackType = None,
         communication_error: bool = False,
         timeout_error: bool = False,
+        new_thermal_schema: bool = False,
     ) -> None:
         super().__init__(
             port=port,
@@ -214,6 +221,9 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         self.rad: RadStatus | None = None
         self.thcs: ThcsStatus | None = None
 
+        # Is the new temperature schema used or not?
+        self.new_thermal_schema = new_thermal_schema
+
     async def start(self, **kwargs: typing.Any) -> None:
         """Start the TCP/IP server.
 
@@ -229,7 +239,9 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         await self.determine_current_tai()
 
         self.log.info("Starting LLCs")
-        self.amcs = AmcsStatus(start_tai=self.current_tai)
+        self.amcs = AmcsStatus(
+            start_tai=self.current_tai, new_thermal_schema=self.new_thermal_schema
+        )
         self.apscs = ApscsStatus(start_tai=self.current_tai)
         self.cbcs = CbcsStatus()
         self.cscs = CscsStatus(start_tai=self.current_tai)
@@ -237,7 +249,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         self.lwscs = LwscsStatus(start_tai=self.current_tai)
         self.moncs = MoncsStatus()
         self.rad = RadStatus()
-        self.thcs = ThcsStatus()
+        self.thcs = ThcsStatus(new_thermal_schema=self.new_thermal_schema)
 
     async def write_reply(self, **data: typing.Any) -> None:
         """Write the data appended with the commandId.
