@@ -87,7 +87,6 @@ COMMANDS_DISABLED_FOR_COMMISSIONING = {
     CommandName.GO_STATIONARY_LOUVERS,
     CommandName.INFLATE,
     CommandName.MOVE_EL,
-    CommandName.SET_LOUVERS,
     CommandName.SET_TEMPERATURE,
     CommandName.STOP_EL,
     CommandName.STOP_LOUVERS,
