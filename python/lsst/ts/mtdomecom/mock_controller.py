@@ -26,7 +26,7 @@ import logging
 import typing
 
 from lsst.ts import tcpip, utils
-from lsst.ts.xml.enums.MTDome import MotionState
+from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
 
 from .encoding_tools import validate
 from .enums import (
@@ -870,11 +870,16 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.amcs is not None
         return await self.amcs.set_zero_az(self.current_tai)
 
-    async def home(self) -> float:
+    async def home(self, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
         was shutdown with the Aperture Shutter not fully open or fully closed.
+
+        Parameters
+        ----------
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
 
         Returns
         -------
@@ -882,7 +887,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             The estimated duration of the execution of the command.
         """
         assert self.apscs is not None
-        return await self.apscs.home(self.current_tai)
+        return await self.apscs.home(self.current_tai, direction)
 
 
 async def main() -> None:

@@ -35,6 +35,7 @@ from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
     OnOff,
+    OpenClose,
     OperationalMode,
     PowerManagementMode,
     SubSystemId,
@@ -1144,9 +1145,9 @@ class MTDomeCom:
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.SET_ZERO_AZ)
 
-    async def home(self, sub_system_ids: int) -> None:
-        """Search the home position of the Aperture Shutter, which is the
-        closed position.
+    async def home(self, sub_system_ids: int, direction: OpenClose) -> None:
+        """Search the home position of the Aperture Shutter in the indicated
+        direction.
 
         This is necessary in case the ApSCS (Aperture Shutter Control system)
         was shutdown with the Aperture Shutter not fully open or fully closed.
@@ -1155,6 +1156,8 @@ class MTDomeCom:
         ----------
         sub_system_ids : int
             Bitmask of the sub-systems to home.
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
         """
         for sub_system_id in SubSystemId:
             self.log.debug(f"home: sub_system_id={sub_system_id.name}")
@@ -1163,7 +1166,9 @@ class MTDomeCom:
                 and sub_system_id in self.set_home_command_dict
             ):
                 command = self.set_home_command_dict[sub_system_id]
-                await self._schedule_command_if_power_management_active(command=command)
+                await self._schedule_command_if_power_management_active(
+                    command=command, direction=direction
+                )
 
     async def config_llcs(self, system: LlcName, settings: MaxValuesConfigType) -> None:
         """Config command not to be executed by SAL.

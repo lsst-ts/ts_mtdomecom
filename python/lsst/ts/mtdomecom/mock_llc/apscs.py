@@ -26,7 +26,7 @@ import math
 import random
 
 import numpy as np
-from lsst.ts.xml.enums.MTDome import MotionState
+from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
 
 from ..constants import (
     APSCS_CLOSED_POSITION,
@@ -531,7 +531,7 @@ class ApscsStatus(BaseMockStatus):
         duration = max(durations)
         return duration
 
-    async def home(self, start_tai: float) -> float:
+    async def home(self, start_tai: float, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
@@ -544,13 +544,18 @@ class ApscsStatus(BaseMockStatus):
             The TAI time, unix seconds, when the command was issued. To model
             the real dome, this should be the current time. However, for unit
             tests it can be convenient to use other values.
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
 
         Returns
         -------
         `float`
             The expected duration of the command [s].
         """
-        return await self.closeShutter(start_tai)
+        if direction == OpenClose.OPEN:
+            return await self.openShutter(start_tai)
+        else:
+            return await self.closeShutter(start_tai)
 
     async def exit_fault(self, start_tai: float) -> float:
         """Clear the fault state.

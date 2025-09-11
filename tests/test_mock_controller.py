@@ -28,7 +28,7 @@ import typing
 import numpy as np
 import pytest
 from lsst.ts import mtdomecom, tcpip, utils
-from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OperationalMode
+from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OpenClose, OperationalMode
 
 _CURRENT_TAI = 100001
 
@@ -1419,7 +1419,10 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 position_actual=initial_position_actual.tolist(),
             )
 
-            await self.write(command=mtdomecom.CommandName.HOME, parameters={})
+            await self.write(
+                command=mtdomecom.CommandName.HOME,
+                parameters={"direction": OpenClose.CLOSE},
+            )
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.data["timeout"] == pytest.approx(0.0)

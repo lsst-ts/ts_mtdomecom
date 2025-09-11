@@ -33,6 +33,7 @@ from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
     OnOff,
+    OpenClose,
     OperationalMode,
     PowerManagementMode,
     SubSystemId,
@@ -307,7 +308,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com.mock_ctrl.apscs.position_actual = [
                 100.0
             ] * mtdomecom.APSCS_NUM_SHUTTERS
-            await self.mtdomecom_com.home(sub_system_ids=SubSystemId.APSCS)
+            await self.mtdomecom_com.home(
+                sub_system_ids=SubSystemId.APSCS, direction=OpenClose.CLOSE
+            )
             assert (
                 self.mtdomecom_com.mock_ctrl.apscs.target_state
                 == [MotionState.CLOSED.name] * mtdomecom.APSCS_NUM_SHUTTERS
