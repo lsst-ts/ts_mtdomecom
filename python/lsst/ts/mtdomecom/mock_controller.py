@@ -159,6 +159,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.OPEN_SHUTTER: self.open_shutter,
             CommandName.PARK: self.park,
             CommandName.RESET_DRIVES_AZ: self.reset_drives_az,
+            CommandName.RESET_DRIVES_LOUVERS: self.reset_drives_louvers,
             CommandName.RESET_DRIVES_SHUTTER: self.reset_drives_shutter,
             CommandName.RESTORE: self.restore,
             CommandName.SET_DEGRADED_AZ: self.set_degraded_az,
@@ -838,6 +839,24 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         """
         assert self.amcs is not None
         return await self.amcs.reset_drives_az(self.current_tai, reset)
+
+    async def reset_drives_louvers(self, reset: list[int]) -> None:
+        """Reset one or more Louver drives.
+
+        Parameters
+        ----------
+        reset: array of int
+            Desired reset action to execute on each Louver drive: 0
+            means don't reset, 1 means reset.
+
+        Notes
+        -----
+        This is necessary when exiting from FAULT state without going to
+        Degraded Mode since the drives don't reset themselves.
+        The number of values in the reset parameter is not validated.
+        """
+        assert self.lcs is not None
+        await self.lcs.reset_drives_louvers(self.current_tai, reset)
 
     async def reset_drives_shutter(self, reset: list[int]) -> None:
         """Reset one or more Aperture Shutter drives.

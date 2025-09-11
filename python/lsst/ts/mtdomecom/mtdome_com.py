@@ -46,6 +46,8 @@ from .constants import (
     APSCS_NUM_MOTORS_PER_SHUTTER,
     APSCS_NUM_SHUTTERS,
     DOME_AZIMUTH_OFFSET,
+    LCS_NUM_LOUVERS,
+    LCS_NUM_MOTORS_PER_LOUVER,
 )
 from .enums import (
     CommandName,
@@ -1053,6 +1055,13 @@ class MTDomeCom:
 
     async def exit_fault_louvers(self) -> None:
         """Indicate that all LCS hardware errors have been resolved."""
+        louvers_reset = [1] * LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER
+        self.log.debug(f"reset_drives_louvers: {louvers_reset=!s}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_LOUVERS,
+            reset=louvers_reset,
+        )
         self.log.debug("exit_fault_louvers")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
@@ -1133,6 +1142,23 @@ class MTDomeCom:
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.RESET_DRIVES_SHUTTER, reset=reset
+        )
+
+    async def reset_drives_louvers(self, reset: list[int]) -> None:
+        """Reset one or more Louver drives.
+
+        This is necessary when exiting from FAULT state without going to
+        Degraded Mode since the drives don't reset themselves.
+
+        Parameters
+        ----------
+        reset : `list`[`int`]
+            List of indices of the motors to reset.
+        """
+        self.log.debug(f"reset_drives_louvers: reset={reset}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_LOUVERS, reset=reset
         )
 
     async def set_zero_az(self) -> None:
