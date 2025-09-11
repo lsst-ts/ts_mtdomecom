@@ -80,16 +80,13 @@ COMMANDS_REPLIED_PERIOD = 600
 # that there probably will be more situations during commissioning in which
 # commands need to be disabled.
 COMMANDS_DISABLED_FOR_COMMISSIONING = {
-    CommandName.CLOSE_LOUVERS,
     CommandName.CRAWL_EL,
     CommandName.FANS,
     CommandName.GO_STATIONARY_EL,
-    CommandName.GO_STATIONARY_LOUVERS,
     CommandName.INFLATE,
     CommandName.MOVE_EL,
     CommandName.SET_TEMPERATURE,
     CommandName.STOP_EL,
-    CommandName.STOP_LOUVERS,
 }
 REPLY_DATA_FOR_DISABLED_COMMANDS = {"response": 0, "timeout": 0}
 
@@ -105,10 +102,6 @@ ALL_OPERATIONAL_MODE_COMMANDS = {
     SubSystemId.APSCS: {
         OperationalMode.NORMAL.name: CommandName.SET_NORMAL_SHUTTER,
         OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_SHUTTER,
-    },
-    SubSystemId.LCS: {
-        OperationalMode.NORMAL.name: CommandName.SET_NORMAL_LOUVERS,
-        OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_LOUVERS,
     },
     SubSystemId.MONCS: {
         OperationalMode.NORMAL.name: CommandName.SET_NORMAL_MONITORING,
@@ -128,6 +121,10 @@ OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING = {
     SubSystemId.APSCS: {
         OperationalMode.NORMAL.name: CommandName.SET_NORMAL_SHUTTER,
         OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_SHUTTER,
+    },
+    SubSystemId.LCS: {
+        OperationalMode.NORMAL.name: CommandName.SET_NORMAL_LOUVERS,
+        OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_LOUVERS,
     },
 }
 
