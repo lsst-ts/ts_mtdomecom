@@ -40,7 +40,6 @@ SLOW_NETWORK_TIMEOUT = mtdomecom.MockMTDomeController.SLOW_NETWORK_SLEEP + 1.0
 INDEX_ITER = utils.index_generator()
 
 
-# TODO OSW-862 Remove all references to the old temperature schema.
 class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
     server_class = mtdomecom.MockMTDomeController
 
@@ -52,7 +51,6 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         self.log = logging.getLogger("MockTestCase")
         self.communication_error = False
         self.timeout_error = False
-        self.new_thermal_schema = False
 
     async def determine_current_tai(self) -> None:
         # Empty for mocking purposes.
@@ -64,7 +62,6 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             connect_callback=self.connect_callback,
             communication_error=self.communication_error,
             timeout_error=self.timeout_error,
-            new_thermal_schema=self.new_thermal_schema,
         ) as self.mock_ctrl:
             # Replace the determine_current_tai method with a mock method so
             # that the start_tai value on the mock_ctrl object can be set to
@@ -1128,7 +1125,16 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
             assert (
-                thcs_status["temperature"] == [temperature] * mtdomecom.THCS_NUM_SENSORS
+                thcs_status["driveTemperature"]
+                == [temperature] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
+            )
+            assert (
+                thcs_status["motorCoilTemperature"]
+                == [temperature] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
+            )
+            assert (
+                thcs_status["cabinetTemperature"]
+                == [temperature] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
             )
 
     async def test_inflate(self) -> None:
@@ -1233,7 +1239,18 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.data = await self.read()
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
-            assert thcs_status["temperature"] == [0.0] * mtdomecom.THCS_NUM_SENSORS
+            assert (
+                thcs_status["driveTemperature"]
+                == [0.0] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
+            )
+            assert (
+                thcs_status["motorCoilTemperature"]
+                == [0.0] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
+            )
+            assert (
+                thcs_status["cabinetTemperature"]
+                == [0.0] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
+            )
 
             await self.write(command=mtdomecom.CommandName.STATUS_RAD, parameters={})
             self.data = await self.read()
@@ -1500,28 +1517,16 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 with pytest.raises(TimeoutError):
                     self.data = await self.read()
 
-    async def test_new_thermal_schema(self) -> None:
-        for self.new_thermal_schema in [False, True]:
-            async with self.create_mtdomecom_controller(), self.create_client():
-                await self.write(
-                    command=mtdomecom.CommandName.STATUS_AMCS, parameters={}
-                )
-                llc_status = await self.read()
-                amcs_status = llc_status["AMCS"]
-                await self.write(
-                    command=mtdomecom.CommandName.STATUS_THCS, parameters={}
-                )
-                llc_status = await self.read()
-                thcs_status = llc_status["ThCS"]
-                if not self.new_thermal_schema:
-                    assert "driveTemperature" in amcs_status
-                    assert "temperature" in thcs_status
-                    assert "driveTemperature" not in thcs_status
-                    assert "motorCoilTemperature" not in thcs_status
-                    assert "cabinetTemperature" not in thcs_status
-                else:
-                    assert "driveTemperature" not in amcs_status
-                    assert "temperature" not in thcs_status
-                    assert "driveTemperature" in thcs_status
-                    assert "motorCoilTemperature" in thcs_status
-                    assert "cabinetTemperature" in thcs_status
+    async def test_thermal_schema(self) -> None:
+        async with self.create_mtdomecom_controller(), self.create_client():
+            await self.write(command=mtdomecom.CommandName.STATUS_AMCS, parameters={})
+            llc_status = await self.read()
+            amcs_status = llc_status["AMCS"]
+            await self.write(command=mtdomecom.CommandName.STATUS_THCS, parameters={})
+            llc_status = await self.read()
+            thcs_status = llc_status["ThCS"]
+            assert "driveTemperature" not in amcs_status
+            assert "temperature" not in thcs_status
+            assert "driveTemperature" in thcs_status
+            assert "motorCoilTemperature" in thcs_status
+            assert "cabinetTemperature" in thcs_status

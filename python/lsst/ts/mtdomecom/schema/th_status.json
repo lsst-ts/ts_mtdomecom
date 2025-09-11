@@ -51,10 +51,30 @@
           ],
           "additionalProperties": false
         },
-        "temperature": {
+        "driveTemperature": {
           "type": "array",
-          "minItems": 13,
-          "maxItems": 13,
+          "minItems": 10,
+          "maxItems": 10,
+          "items": [
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "motorCoilTemperature": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": [
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "cabinetTemperature": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
           "items": [
             {
               "type": "number"
@@ -67,7 +87,9 @@
       },
       "required": [
         "status",
-        "temperature",
+        "driveTemperature",
+        "motorCoilTemperature",
+        "cabinetTemperature",
         "timestampUTC"
       ],
       "additionalProperties": false

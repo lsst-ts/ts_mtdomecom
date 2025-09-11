@@ -198,7 +198,6 @@ class CommandTime:
     tai: float
 
 
-# TODO OSW-862 Remove all references to the old temperature schema.
 class MTDomeCom:
     """TCP/IP interface to the MTDome controller.
 
@@ -221,12 +220,6 @@ class MTDomeCom:
         (False)? This is for unit tests only. The default is False.
     timeout_error : `bool`
         Do command replies timeout of not? The default is False.
-    new_thermal_schema : `bool`
-        Is the new thermal schema used (True) or not (False, the default).
-        If True, the temperature values only occur in the ThCS telemetry and
-        are split over their repspective items. If False, all temperatures are
-        reported in one item in both AMCS and ThCS telemetry. This is only
-        used by the mock controller.
     """
 
     _index_iter = utils.index_generator()
@@ -242,7 +235,6 @@ class MTDomeCom:
         start_periodic_tasks: bool = True,
         communication_error: bool = False,
         timeout_error: bool = False,
-        new_thermal_schema: bool = False,
     ) -> None:
         self.client: tcpip.Client | None = None
         self.log = log.getChild(type(self).__name__)
@@ -261,9 +253,6 @@ class MTDomeCom:
         # Mock a timeout error (True) or not (False). To be set by unit
         # tests only.
         self.timeout_error = timeout_error
-
-        # Is the new temperature schema used or not?
-        self.new_thermal_schema = new_thermal_schema
 
         # Keep the lower level statuses in memory for unit tests.
         self.lower_level_status: dict[LlcName, typing.Any] = {}
@@ -536,7 +525,6 @@ class MTDomeCom:
             log=self.log,
             communication_error=self.communication_error,
             timeout_error=self.timeout_error,
-            new_thermal_schema=self.new_thermal_schema,
         )
         await asyncio.wait_for(self.mock_ctrl.start(), timeout=_TIMEOUT)
 
