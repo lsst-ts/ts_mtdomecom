@@ -64,18 +64,6 @@ def get_duration(start_position: float, end_position: float, max_speed: float) -
     return duration
 
 
-# TODO OSW-329 Remove the mappings below this line as soon as the enum
-#  values are available in ts_xml.
-try:
-    floce = MotionState.FINAL_DOWN_CLOSE_LS_ENGAGED
-except AttributeError:
-    floce = MotionState.FINAL_LOW_CLOSE_LS_ENGAGED
-try:
-    flcle = MotionState.FINAL_DOWN_OPEN_LS_ENGAGED
-except AttributeError:
-    flcle = MotionState.FINAL_LOW_OPEN_LS_ENGAGED
-
-
 class ApscsStatus(BaseMockStatus):
     """Represents the status of the Aperture Shutter Control System in
     simulation mode.
@@ -191,7 +179,7 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_proximity_open_ls_engaged(shutter_id)
             case MotionState.FINAL_UP_OPEN_LS_ENGAGED.name:
                 await self._handle_final_up_open_ls_engaged(shutter_id)
-            case flcle.name:
+            case MotionState.FINAL_LOW_OPEN_LS_ENGAGED.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
             case MotionState.CLOSING.name:
                 await self._handle_opening_or_closing(current_tai, shutter_id)
@@ -199,7 +187,7 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_proximity_closed_ls_engaged(shutter_id)
             case MotionState.FINAL_UP_CLOSE_LS_ENGAGED.name:
                 await self._handle_final_up_close_ls_engaged(shutter_id)
-            case floce.name:
+            case MotionState.FINAL_LOW_CLOSE_LS_ENGAGED.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
             case MotionState.STOPPING.name:
                 self.current_state[shutter_id] = MotionState.STOPPED.name
@@ -271,7 +259,7 @@ class ApscsStatus(BaseMockStatus):
         if self.start_state[shutter_id] == MotionState.STOPPING.name:
             self.current_state[shutter_id] = MotionState.STOPPING.name
         else:
-            self.current_state[shutter_id] = flcle.name
+            self.current_state[shutter_id] = MotionState.FINAL_LOW_OPEN_LS_ENGAGED.name
 
     async def _handle_proximity_closed_ls_engaged(self, shutter_id: int) -> None:
         if self.start_state[shutter_id] == MotionState.STOPPING.name:
@@ -283,7 +271,7 @@ class ApscsStatus(BaseMockStatus):
         if self.start_state[shutter_id] == MotionState.STOPPING.name:
             self.current_state[shutter_id] = MotionState.STOPPING.name
         else:
-            self.current_state[shutter_id] = floce.name
+            self.current_state[shutter_id] = MotionState.FINAL_LOW_CLOSE_LS_ENGAGED.name
 
     async def _handle_brakes_disengaged(self, shutter_id: int) -> None:
         if self.start_state[shutter_id] == MotionState.OPENING.name:

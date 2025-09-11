@@ -59,10 +59,6 @@ class InternalMotionState(enum.IntEnum):
     """
 
     STATIONARY = enum.auto()
-    # TODO DM-50801 Remove the mappings below this line as soon as the enum
-    #  values are available in ts_xml.
-    FINAL_LOW_CLOSE_LS_ENGAGED = enum.auto()
-    FINAL_LOW_OPEN_LS_ENGAGED = enum.auto()
 
 
 # Dict holding translations from motion states, that the lower level
@@ -70,18 +66,6 @@ class InternalMotionState(enum.IntEnum):
 motion_state_translations = {
     InternalMotionState.STATIONARY.name: MotionState.STOPPED_BRAKED
 }
-# TODO DM-50801 Remove the mappings below this line as soon as the enum
-#  values are available in ts_xml.
-try:
-    motion_state_translations[InternalMotionState.FINAL_LOW_CLOSE_LS_ENGAGED.name] = (
-        MotionState.FINAL_DOWN_CLOSE_LS_ENGAGED,
-    )
-    motion_state_translations[InternalMotionState.FINAL_LOW_OPEN_LS_ENGAGED.name] = (
-        MotionState.FINAL_DOWN_OPEN_LS_ENGAGED
-    )
-except AttributeError:
-    # Ignore
-    pass
 
 
 class CommandName(enum.StrEnum):
