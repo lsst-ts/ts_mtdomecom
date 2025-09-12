@@ -92,7 +92,6 @@ def get_duration(start_position: float, end_position: float, max_speed: float) -
     return duration
 
 
-# TODO OSW-862 Remove all references to the old temperature schema.
 class AmcsStatus(BaseMockStatus):
     """Represents the status of the Azimuth Motion Control System in simulation
     mode.
@@ -103,13 +102,9 @@ class AmcsStatus(BaseMockStatus):
         The TAI time, unix seconds, at the time at which this class is
         instantiated.  To model the real dome, this should be the current time.
         However, for unit tests it can be convenient to use other values.
-    new_thermal_schema : `bool`
-        Is the new thermal schema used (True) or not (False, the default).
-        If True, no `driveTemperature` is included in the status since that is
-        then part of the ThCS status.
     """
 
-    def __init__(self, start_tai: float, new_thermal_schema: bool = False) -> None:
+    def __init__(self, start_tai: float) -> None:
         super().__init__()
         self.log = logging.getLogger("MockAzcsStatus")
         self.amcs_limits = AmcsLimits()
@@ -143,9 +138,6 @@ class AmcsStatus(BaseMockStatus):
         self.barcode_head_raw = np.zeros(AMCS_NUM_RESOLVERS, dtype=float)
         self.barcode_head_calibrated = np.zeros(AMCS_NUM_RESOLVERS, dtype=float)
         self.barcode_head_weighted = np.zeros(AMCS_NUM_RESOLVERS, dtype=float)
-
-        # Is the new temperature schema used or not?
-        self.new_thermal_schema = new_thermal_schema
 
         # State machine related attributes.
         self.current_state = MotionState.PARKED.name
@@ -370,8 +362,6 @@ class AmcsStatus(BaseMockStatus):
             },
             "timestampUTC": current_tai,
         }
-        if not self.new_thermal_schema:
-            self.llc_status["driveTemperature"] = self.drive_temperature.tolist()
 
         self.log.debug(f"{current_tai=}, amcs_state = {self.llc_status}")
 

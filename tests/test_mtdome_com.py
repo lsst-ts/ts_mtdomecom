@@ -33,19 +33,18 @@ from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
     OnOff,
+    OpenClose,
     OperationalMode,
     PowerManagementMode,
     SubSystemId,
 )
 
 
-# TODO OSW-862 Remove all references to the old temperature schema.
 class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.command_id = -1
         self.data: dict | None = None
         self.log = logging.getLogger("MTDomeComTestCase")
-        self.new_thermal_schema = False
 
     @contextlib.asynccontextmanager
     async def create_mtdomecom(self) -> typing.AsyncGenerator[None, None]:
@@ -53,7 +52,6 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             log=self.log,
             config=types.SimpleNamespace(),
             simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
-            new_thermal_schema=self.new_thermal_schema,
         ) as self.mtdomecom_com:
             assert len(self.mtdomecom_com.telemetry_callbacks) == 0
             yield
@@ -255,9 +253,13 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_set_temperature(self) -> None:
         async with self.create_mtdomecom():
-            assert math.isclose(self.mtdomecom_com.mock_ctrl.thcs.temperature[0], 0.0)
+            assert math.isclose(
+                self.mtdomecom_com.mock_ctrl.thcs.drive_temperature[0], 0.0
+            )
             await self.mtdomecom_com.set_temperature(10.0)
-            assert math.isclose(self.mtdomecom_com.mock_ctrl.thcs.temperature[0], 10.0)
+            assert math.isclose(
+                self.mtdomecom_com.mock_ctrl.thcs.drive_temperature[0], 10.0
+            )
 
     async def test_exit_fault(self) -> None:
         async with self.create_mtdomecom():
@@ -307,7 +309,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com.mock_ctrl.apscs.position_actual = [
                 100.0
             ] * mtdomecom.APSCS_NUM_SHUTTERS
-            await self.mtdomecom_com.home(sub_system_ids=SubSystemId.APSCS)
+            await self.mtdomecom_com.home(
+                sub_system_ids=SubSystemId.APSCS, direction=OpenClose.CLOSE
+            )
             assert (
                 self.mtdomecom_com.mock_ctrl.apscs.target_state
                 == [MotionState.CLOSED.name] * mtdomecom.APSCS_NUM_SHUTTERS
@@ -567,39 +571,30 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             with pytest.raises(TimeoutError):
                 await self.mtdomecom_com.park()
 
-    async def test_new_thermal_schema(self) -> None:
-        for self.new_thermal_schema in [False, True]:
-            async with self.create_mtdomecom():
-                telemetry_callbacks = {
-                    mtdomecom.LlcName.AMCS: self.handle_llc_status,
-                    mtdomecom.LlcName.THCS: self.handle_llc_status,
-                }
-                self.mtdomecom_com = mtdomecom.MTDomeCom(
-                    log=self.log,
-                    config=types.SimpleNamespace(),
-                    simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
-                    telemetry_callbacks=telemetry_callbacks,
-                    start_periodic_tasks=False,
-                    new_thermal_schema=self.new_thermal_schema,
-                )
-                await self.mtdomecom_com.connect()
+    async def test_thermal_schema(self) -> None:
+        async with self.create_mtdomecom():
+            telemetry_callbacks = {
+                mtdomecom.LlcName.AMCS: self.handle_llc_status,
+                mtdomecom.LlcName.THCS: self.handle_llc_status,
+            }
+            self.mtdomecom_com = mtdomecom.MTDomeCom(
+                log=self.log,
+                config=types.SimpleNamespace(),
+                simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+                telemetry_callbacks=telemetry_callbacks,
+                start_periodic_tasks=False,
+            )
+            await self.mtdomecom_com.connect()
 
-                await self.mtdomecom_com.status_amcs()
-                amcs_status = self.llc_status
-                await self.mtdomecom_com.status_thcs()
-                thcs_status = self.llc_status
-                if not self.new_thermal_schema:
-                    assert "driveTemperature" in amcs_status
-                    assert "temperature" in thcs_status
-                    assert "driveTemperature" not in thcs_status
-                    assert "motorCoilTemperature" not in thcs_status
-                    assert "cabinetTemperature" not in thcs_status
-                else:
-                    assert "driveTemperature" not in amcs_status
-                    assert "temperature" not in thcs_status
-                    assert "driveTemperature" in thcs_status
-                    assert "motorCoilTemperature" in thcs_status
-                    assert "cabinetTemperature" in thcs_status
+            await self.mtdomecom_com.status_amcs()
+            amcs_status = self.llc_status
+            await self.mtdomecom_com.status_thcs()
+            thcs_status = self.llc_status
+            assert "driveTemperature" not in amcs_status
+            assert "temperature" not in thcs_status
+            assert "driveTemperature" in thcs_status
+            assert "motorCoilTemperature" in thcs_status
+            assert "cabinetTemperature" in thcs_status
 
     async def handle_llc_status(self, status: dict[str, typing.Any]) -> None:
         self.llc_status = status

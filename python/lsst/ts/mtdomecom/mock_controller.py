@@ -26,7 +26,7 @@ import logging
 import typing
 
 from lsst.ts import tcpip, utils
-from lsst.ts.xml.enums.MTDome import MotionState
+from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
 
 from .encoding_tools import validate
 from .enums import (
@@ -62,7 +62,6 @@ ROTATING_COMMANDS = (
 REPLY_WAIT_TIME = 600
 
 
-# TODO OSW-862 Remove all references to the old temperature schema.
 class MockMTDomeController(tcpip.OneClientReadLoopServer):
     """Mock MTDome Controller that talks over TCP/IP.
 
@@ -79,11 +78,6 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         (False)? This is for unit tests only. The default is False.
     timeout_error : `bool`
         Do command replies timeout of not? The default is False.
-    new_thermal_schema : `bool`
-        Is the new thermal schema used (True) or not (False, the default).
-        If True, the temperature values only occur in the ThCS telemetry and
-        are split over their repspective items. If False, all temperatures are
-        reported in one item in both AMCS and ThCS telemetry.
 
     Notes
     -----
@@ -124,7 +118,6 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         connect_callback: None | tcpip.ConnectCallbackType = None,
         communication_error: bool = False,
         timeout_error: bool = False,
-        new_thermal_schema: bool = False,
     ) -> None:
         super().__init__(
             port=port,
@@ -159,6 +152,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.OPEN_SHUTTER: self.open_shutter,
             CommandName.PARK: self.park,
             CommandName.RESET_DRIVES_AZ: self.reset_drives_az,
+            CommandName.RESET_DRIVES_LOUVERS: self.reset_drives_louvers,
             CommandName.RESET_DRIVES_SHUTTER: self.reset_drives_shutter,
             CommandName.RESTORE: self.restore,
             CommandName.SET_DEGRADED_AZ: self.set_degraded_az,
@@ -221,9 +215,6 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         self.rad: RadStatus | None = None
         self.thcs: ThcsStatus | None = None
 
-        # Is the new temperature schema used or not?
-        self.new_thermal_schema = new_thermal_schema
-
     async def start(self, **kwargs: typing.Any) -> None:
         """Start the TCP/IP server.
 
@@ -239,9 +230,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         await self.determine_current_tai()
 
         self.log.info("Starting LLCs")
-        self.amcs = AmcsStatus(
-            start_tai=self.current_tai, new_thermal_schema=self.new_thermal_schema
-        )
+        self.amcs = AmcsStatus(start_tai=self.current_tai)
         self.apscs = ApscsStatus(start_tai=self.current_tai)
         self.cbcs = CbcsStatus()
         self.cscs = CscsStatus(start_tai=self.current_tai)
@@ -249,7 +238,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         self.lwscs = LwscsStatus(start_tai=self.current_tai)
         self.moncs = MoncsStatus()
         self.rad = RadStatus()
-        self.thcs = ThcsStatus(new_thermal_schema=self.new_thermal_schema)
+        self.thcs = ThcsStatus()
 
     async def write_reply(self, **data: typing.Any) -> None:
         """Write the data appended with the commandId.
@@ -821,7 +810,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each AZ drive: 0 means don't
             reset, 1 means reset.
 
@@ -839,12 +828,30 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.amcs is not None
         return await self.amcs.reset_drives_az(self.current_tai, reset)
 
+    async def reset_drives_louvers(self, reset: list[int]) -> None:
+        """Reset one or more Louver drives.
+
+        Parameters
+        ----------
+        reset: `list`[`int`]
+            Desired reset action to execute on each Louver drive: 0
+            means don't reset, 1 means reset.
+
+        Notes
+        -----
+        This is necessary when exiting from FAULT state without going to
+        Degraded Mode since the drives don't reset themselves.
+        The number of values in the reset parameter is not validated.
+        """
+        assert self.lcs is not None
+        await self.lcs.reset_drives_louvers(self.current_tai, reset)
+
     async def reset_drives_shutter(self, reset: list[int]) -> None:
         """Reset one or more Aperture Shutter drives.
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each Aperture Shutter drive: 0
             means don't reset, 1 means reset.
 
@@ -870,11 +877,16 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.amcs is not None
         return await self.amcs.set_zero_az(self.current_tai)
 
-    async def home(self) -> float:
+    async def home(self, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
         was shutdown with the Aperture Shutter not fully open or fully closed.
+
+        Parameters
+        ----------
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
 
         Returns
         -------
@@ -882,7 +894,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             The estimated duration of the execution of the command.
         """
         assert self.apscs is not None
-        return await self.apscs.home(self.current_tai)
+        return await self.apscs.home(self.current_tai, direction)
 
 
 async def main() -> None:

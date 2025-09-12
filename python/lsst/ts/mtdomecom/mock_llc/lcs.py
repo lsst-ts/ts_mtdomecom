@@ -34,7 +34,7 @@ from ..constants import (
 )
 from ..enums import InternalMotionState
 from ..power_management.power_draw_constants import LOUVERS_POWER_DRAW
-from .base_mock_llc import BaseMockStatus
+from .base_mock_llc import DEFAULT_MESSAGES, FAULT_MESSAGES, BaseMockStatus
 
 
 class LcsStatus(BaseMockStatus):
@@ -50,7 +50,7 @@ class LcsStatus(BaseMockStatus):
         self.log = logging.getLogger("MockLcsStatus")
 
         # Variables holding the status of the mock Louvres
-        self.messages = [{"code": 0, "description": "No Errors"}]
+        self.messages = DEFAULT_MESSAGES
         self.start_position = np.zeros(LCS_NUM_LOUVERS, dtype=float)
         self.position_actual = np.zeros(LCS_NUM_LOUVERS, dtype=float)
         self.position_commanded = np.zeros(LCS_NUM_LOUVERS, dtype=float)
@@ -84,6 +84,11 @@ class LcsStatus(BaseMockStatus):
         self.target_state = np.full(
             LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object
         )
+
+        # Error state related attributes.
+        self.drives_in_error_state = [
+            [False] * LCS_NUM_MOTORS_PER_LOUVER
+        ] * LCS_NUM_LOUVERS
 
     async def evaluate_state(self, current_tai: float, louver_id: int) -> None:
         """Evaluate the state and perform a state transition if necessary.
@@ -287,7 +292,109 @@ class LcsStatus(BaseMockStatus):
         ----------
         current_tai : `float`
             The current time, in UNIX TAI seconds.
+
+        Raises
+        ------
+        RuntimeError
+            In case there are drives in fault.
         """
+        for louver_id in range(LCS_NUM_LOUVERS):
+            if any(self.drives_in_error_state[louver_id]):
+                raise RuntimeError(
+                    "Make sure to reset drives before exiting from fault."
+                )
+
         self.command_time_tai = current_tai
         self.start_state[:] = MotionState.GO_STATIONARY.name
         self.target_state[:] = InternalMotionState.STATIONARY.name
+        self.messages = DEFAULT_MESSAGES
+
+    async def reset_drives_louvers(self, start_tai: float, reset: list[int]) -> float:
+        """Reset one or more Louver drives.
+
+        Parameters
+        ----------
+        start_tai: `float`
+            The TAI time, unix seconds, when the command was issued. To model
+            the real dome, this should be the current time. However, for unit
+            tests it can be convenient to use other values.
+        reset: array of int
+            Desired reset action to execute on each Louver drive: 0
+            means don't reset, 1 means reset.
+
+        Returns
+        -------
+        `float`
+            The expected duration of the command [s].
+
+        Raises
+        ------
+        ValueError
+            If the 'reset' parameter has the wrong length.
+
+        Notes
+        -----
+        This is necessary when exiting from FAULT state without going to
+        Degraded Mode since the drives don't reset themselves.
+        The number of values in the reset parameter is not validated.
+        """
+        if len(reset) != LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER:
+            raise ValueError(
+                f"The length of 'reset' should be {LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER} "
+                f"but is {len(reset)}."
+            )
+        for louvers_id in range(LCS_NUM_LOUVERS):
+            for i, val in enumerate(
+                reset[
+                    louvers_id * LCS_NUM_LOUVERS : louvers_id * LCS_NUM_LOUVERS
+                    + LCS_NUM_MOTORS_PER_LOUVER
+                ]
+            ):
+                if val == 1:
+                    self.drives_in_error_state[louvers_id][i] = False
+        return 0.0
+
+    async def set_fault(self, start_tai: float, drives_in_error: list[int]) -> None:
+        """Set the MotionState of ApSCS to fault and set the drives in
+        drives_in_error to error.
+
+        Parameters
+        ----------
+        start_tai: `float`
+            The TAI time, unix seconds, when the command was issued. To model
+            the real dome, this should be the current time. However, for unit
+            tests it can be convenient to use other values.
+        drives_in_error : array of int
+            Desired error action to execute on each Shutter drive: 0 means
+            don't set to error, 1 means set to error. There should be 4 error
+            actions and that is not checked.
+
+        Raises
+        ------
+        ValueError
+            If the 'drives_in_error' parameter has the wrong length.
+
+        Notes
+        -----
+        This function is not mapped to a command that MockMTDomeController can
+        receive. It is intended to be set by unit test cases.
+        """
+        if len(drives_in_error) != LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER:
+            raise ValueError(
+                "The length of 'drives_in_error' should be "
+                f"{LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER}"
+                f" but is {len(drives_in_error)}."
+            )
+        for louvers_id in range(LCS_NUM_LOUVERS):
+            await self._handle_moving(start_tai, louvers_id)
+            for i, val in enumerate(
+                drives_in_error[
+                    louvers_id * LCS_NUM_LOUVERS : louvers_id * LCS_NUM_LOUVERS
+                    + LCS_NUM_MOTORS_PER_LOUVER
+                ]
+            ):
+                self.drives_in_error_state[louvers_id][i] = val == 1
+            self.start_state[louvers_id] = MotionState.ERROR.name
+            self.current_state[louvers_id] = MotionState.ERROR.name
+            self.target_state[louvers_id] = MotionState.ERROR.name
+        self.messages = FAULT_MESSAGES

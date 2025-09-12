@@ -88,6 +88,7 @@ registry["command"] = json.loads(
         "resetDrivesAz",
         "setZeroAz",
         "resetDrivesShutter",
+        "resetDrivesLouvers",
         "home"
       ]
     }
@@ -1042,6 +1043,38 @@ registry["command"] = json.loads(
       "if": {
         "properties": {
           "command": {
+            "const": "resetDrivesLouvers"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "reset": {
+                "type": "array",
+                "minItems": 68,
+                "maxItems": 68,
+                "items": [
+                  {
+                    "type": "integer"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "reset"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "command": {
             "const": "home"
           }
         }
@@ -1050,6 +1083,14 @@ registry["command"] = json.loads(
         "properties": {
           "parameters": {
             "type": "object",
+            "properties": {
+              "direction": {
+                "enum": ["OPEN", "CLOSE"]
+              }
+            },
+			"required":[
+              "direction"
+			],
             "additionalProperties": false
           }
         }

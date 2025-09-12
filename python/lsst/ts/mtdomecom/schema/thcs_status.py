@@ -24,13 +24,7 @@ import pathlib
 
 from .registry import registry
 
-# TODO OSW-862 Remove all references to the old temperature schema.
 json_path = pathlib.Path(__file__).parents[0] / "th_status.json"
 with open(json_path) as f:
     lines = "".join(f.readlines())
     registry["ThCS"] = json.loads(lines)
-
-json_path = pathlib.Path(__file__).parents[0] / "th_status_new.json"
-with open(json_path) as f:
-    lines = "".join(f.readlines())
-    registry["ThCS_new"] = json.loads(lines)

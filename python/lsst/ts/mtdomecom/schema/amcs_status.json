@@ -101,16 +101,6 @@
             }
           ]
         },
-        "driveTemperature": {
-          "type": "array",
-          "minItems": 13,
-          "maxItems": 13,
-          "items": [
-            {
-              "type": "number"
-            }
-          ]
-        },
         "encoderHeadRaw": {
           "type": "array",
           "minItems": 5,
@@ -188,7 +178,6 @@
         "driveTorqueActual",
         "driveTorqueCommanded",
         "driveCurrentActual",
-        "driveTemperature",
         "encoderHeadRaw",
         "encoderHeadCalibrated",
         "barcodeHeadRaw",
