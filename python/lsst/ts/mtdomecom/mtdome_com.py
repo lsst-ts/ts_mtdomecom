@@ -33,6 +33,7 @@ from types import SimpleNamespace
 
 from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import (
+    Louver,
     MotionState,
     OnOff,
     OpenClose,
@@ -50,6 +51,7 @@ from .constants import (
     LCS_NUM_MOTORS_PER_LOUVER,
 )
 from .enums import (
+    LOUVERS_ENABLED,
     CommandName,
     LlcName,
     MaxValuesConfigType,
@@ -365,6 +367,15 @@ class MTDomeCom:
 
         if self.start_periodic_tasks:
             await self._start_periodic_tasks()
+
+        louver_states = []
+        for louver in Louver:
+            if louver in LOUVERS_ENABLED:
+                louver_states.append(f"{louver.name} (index {louver.value + 1})")
+        louvers_message = (
+            "Louvers currently enabled: [" + ", ".join(louver_states) + "]"
+        )
+        self.log.info(louvers_message)
 
         self.log.info("connected")
 

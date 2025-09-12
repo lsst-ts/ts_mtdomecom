@@ -23,6 +23,7 @@ __all__ = [
     "CSCS_COMMANDS",
     "EL_COMMANDS",
     "LOUVERS_COMMANDS",
+    "LOUVERS_ENABLED",
     "POWER_MANAGEMENT_COMMANDS",
     "RAD_COMMANDS",
     "SHUTTER_COMMANDS",
@@ -49,7 +50,7 @@ import enum
 import typing
 from dataclasses import dataclass
 
-from lsst.ts.xml.enums.MTDome import MotionState, OnOff, SubSystemId
+from lsst.ts.xml.enums.MTDome import Louver, MotionState, OnOff, SubSystemId
 
 
 class InternalMotionState(enum.IntEnum):
@@ -245,6 +246,9 @@ POWER_MANAGEMENT_COMMANDS = [
     CommandName.OPEN_SHUTTER,
     CommandName.SET_LOUVERS,
 ]
+
+# Louvers currently enabled.
+LOUVERS_ENABLED = [Louver.E1]
 
 
 @dataclass(order=True)
