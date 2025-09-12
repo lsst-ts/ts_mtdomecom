@@ -810,7 +810,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each AZ drive: 0 means don't
             reset, 1 means reset.
 
@@ -833,7 +833,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each Louver drive: 0
             means don't reset, 1 means reset.
 
@@ -851,7 +851,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each Aperture Shutter drive: 0
             means don't reset, 1 means reset.
 

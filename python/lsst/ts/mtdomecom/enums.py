@@ -248,6 +248,7 @@ POWER_MANAGEMENT_COMMANDS = [
 ]
 
 # Louvers currently enabled.
+# TODO OSW-1057 move to ts_config_mttcs.
 LOUVERS_ENABLED = [Louver.E1]
 
 

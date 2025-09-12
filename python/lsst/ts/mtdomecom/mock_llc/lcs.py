@@ -292,6 +292,11 @@ class LcsStatus(BaseMockStatus):
         ----------
         current_tai : `float`
             The current time, in UNIX TAI seconds.
+
+        Raises
+        ------
+        RuntimeError
+            In case there are drives in fault.
         """
         for louver_id in range(LCS_NUM_LOUVERS):
             if any(self.drives_in_error_state[louver_id]):
