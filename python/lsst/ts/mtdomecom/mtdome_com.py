@@ -45,6 +45,8 @@ from .constants import (
     APSCS_NUM_MOTORS_PER_SHUTTER,
     APSCS_NUM_SHUTTERS,
     DOME_AZIMUTH_OFFSET,
+    LCS_NUM_LOUVERS,
+    LCS_NUM_MOTORS_PER_LOUVER,
 )
 from .enums import (
     CommandName,
@@ -1048,6 +1050,14 @@ class MTDomeCom:
 
     async def exit_fault_louvers(self) -> None:
         """Indicate that all LCS hardware errors have been resolved."""
+        louvers_reset = [1] * LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER
+        self.log.debug(f"reset_drives_louvers: {louvers_reset=!s}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_LOUVERS,
+            reset=louvers_reset,
+        )
+
         self.log.debug("exit_fault_louvers")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
