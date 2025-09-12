@@ -23,6 +23,7 @@ __all__ = [
     "CSCS_COMMANDS",
     "EL_COMMANDS",
     "LOUVERS_COMMANDS",
+    "LOUVERS_ENABLED",
     "POWER_MANAGEMENT_COMMANDS",
     "RAD_COMMANDS",
     "SHUTTER_COMMANDS",
@@ -49,7 +50,7 @@ import enum
 import typing
 from dataclasses import dataclass
 
-from lsst.ts.xml.enums.MTDome import MotionState, OnOff, SubSystemId
+from lsst.ts.xml.enums.MTDome import Louver, MotionState, OnOff, SubSystemId
 
 
 class InternalMotionState(enum.IntEnum):
@@ -245,6 +246,9 @@ SHUTTER_COMMANDS = [
 
 # Dictionary to look up which LlcName is associated with which sub-system.
 LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}
+
+# Louvers currently enabled.
+LOUVERS_ENABLED = [Louver.E1]
 
 # Custom types used for configurable maximum values.
 MaxValueConfigType = dict[str, str | list[float]]
