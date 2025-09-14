@@ -1,1 +1,0 @@
-Added log message indicating which louvers are enabled.
