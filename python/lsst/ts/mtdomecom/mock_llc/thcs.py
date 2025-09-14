@@ -26,21 +26,30 @@ import logging
 import numpy as np
 from lsst.ts.xml.enums.MTDome import MotionState
 
-from ..constants import THCS_NUM_SENSORS
+from ..constants import (
+    THCS_NUM_CABINET_TEMPERATURES,
+    THCS_NUM_MOTOR_COIL_TEMPERATURES,
+    THCS_NUM_MOTOR_DRIVE_TEMPERATURES,
+)
 from ..enums import InternalMotionState
 from .base_mock_llc import BaseMockStatus
 
 
 class ThcsStatus(BaseMockStatus):
     """Represents the status of the Thermal Control System in simulation
-    mode.
-    """
+    mode."""
 
     def __init__(self) -> None:
         super().__init__()
         self.log = logging.getLogger("MockThcsStatus")
         self.messages = [{"code": 0, "description": "No Errors"}]
-        self.temperature = np.zeros(THCS_NUM_SENSORS, dtype=float)
+        self.drive_temperature = np.zeros(
+            THCS_NUM_MOTOR_DRIVE_TEMPERATURES, dtype=float
+        )
+        self.motor_coil_temperature = np.zeros(
+            THCS_NUM_MOTOR_COIL_TEMPERATURES, dtype=float
+        )
+        self.cabinet_temperature = np.zeros(THCS_NUM_CABINET_TEMPERATURES, dtype=float)
         self.current_state = MotionState.DISABLED.name
         self.target_state = MotionState.DISABLED.name
 
@@ -72,8 +81,10 @@ class ThcsStatus(BaseMockStatus):
                 "status": self.current_state,
                 "operationalMode": self.operational_mode.name,
             },
-            "temperature": self.temperature.tolist(),
             "timestampUTC": current_tai,
+            "driveTemperature": self.drive_temperature.tolist(),
+            "motorCoilTemperature": self.motor_coil_temperature.tolist(),
+            "cabinetTemperature": self.cabinet_temperature.tolist(),
         }
         self.log.debug(f"thcs_state = {self.llc_status}")
 
@@ -90,7 +101,9 @@ class ThcsStatus(BaseMockStatus):
             The current time, in UNIX TAI seconds.
         """
         self.command_time_tai = current_tai
-        self.temperature[:] = temperature
+        self.drive_temperature[:] = temperature
+        self.motor_coil_temperature[:] = temperature
+        self.cabinet_temperature[:] = temperature
 
     async def start_cooling(self, current_tai: float) -> None:
         """Start cooling.

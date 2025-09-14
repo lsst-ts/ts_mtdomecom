@@ -19,19 +19,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
 __all__ = ["COMMANDS_REPLIED_PERIOD", "CommandTime", "MTDomeCom"]
 
 import asyncio
 import logging
 import math
+import types
 import typing
 from dataclasses import dataclass
 from types import SimpleNamespace
 
 from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import (
+    Louver,
     MotionState,
     OnOff,
+    OpenClose,
     OperationalMode,
     PowerManagementMode,
     SubSystemId,
@@ -42,8 +47,11 @@ from .constants import (
     APSCS_NUM_MOTORS_PER_SHUTTER,
     APSCS_NUM_SHUTTERS,
     DOME_AZIMUTH_OFFSET,
+    LCS_NUM_LOUVERS,
+    LCS_NUM_MOTORS_PER_LOUVER,
 )
 from .enums import (
+    LOUVERS_ENABLED,
     CommandName,
     LlcName,
     MaxValuesConfigType,
@@ -77,17 +85,13 @@ COMMANDS_REPLIED_PERIOD = 600
 # that there probably will be more situations during commissioning in which
 # commands need to be disabled.
 COMMANDS_DISABLED_FOR_COMMISSIONING = {
-    CommandName.CLOSE_LOUVERS,
     CommandName.CRAWL_EL,
     CommandName.FANS,
     CommandName.GO_STATIONARY_EL,
-    CommandName.GO_STATIONARY_LOUVERS,
     CommandName.INFLATE,
     CommandName.MOVE_EL,
-    CommandName.SET_LOUVERS,
     CommandName.SET_TEMPERATURE,
     CommandName.STOP_EL,
-    CommandName.STOP_LOUVERS,
 }
 REPLY_DATA_FOR_DISABLED_COMMANDS = {"response": 0, "timeout": 0}
 
@@ -126,6 +130,10 @@ OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING = {
     SubSystemId.APSCS: {
         OperationalMode.NORMAL.name: CommandName.SET_NORMAL_SHUTTER,
         OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_SHUTTER,
+    },
+    SubSystemId.LCS: {
+        OperationalMode.NORMAL.name: CommandName.SET_NORMAL_LOUVERS,
+        OperationalMode.DEGRADED.name: CommandName.SET_DEGRADED_LOUVERS,
     },
 }
 
@@ -359,6 +367,15 @@ class MTDomeCom:
 
         if self.start_periodic_tasks:
             await self._start_periodic_tasks()
+
+        louver_states = []
+        for louver in Louver:
+            if louver in LOUVERS_ENABLED:
+                louver_states.append(f"{louver.name} (index {louver.value + 1})")
+        louvers_message = (
+            "Louvers currently enabled: [" + ", ".join(louver_states) + "]"
+        )
+        self.log.info(louvers_message)
 
         self.log.info("connected")
 
@@ -690,7 +707,7 @@ class MTDomeCom:
                 try:
                     async with asyncio.timeout(_TIMEOUT):
                         data = await self.client.read_json()
-                except TimeoutError as exc:
+                except (TimeoutError, ConnectionError, EOFError) as exc:
                     self.communication_error_report = {
                         "command_name": CommandName(command_name),
                         "exception": exc,
@@ -1037,6 +1054,13 @@ class MTDomeCom:
 
     async def exit_fault_louvers(self) -> None:
         """Indicate that all LCS hardware errors have been resolved."""
+        louvers_reset = [1] * LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER
+        self.log.debug(f"reset_drives_louvers: {louvers_reset=!s}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_LOUVERS,
+            reset=louvers_reset,
+        )
         self.log.debug("exit_fault_louvers")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
@@ -1119,6 +1143,23 @@ class MTDomeCom:
             command=CommandName.RESET_DRIVES_SHUTTER, reset=reset
         )
 
+    async def reset_drives_louvers(self, reset: list[int]) -> None:
+        """Reset one or more Louver drives.
+
+        This is necessary when exiting from FAULT state without going to
+        Degraded Mode since the drives don't reset themselves.
+
+        Parameters
+        ----------
+        reset : `list`[`int`]
+            List of indices of the motors to reset.
+        """
+        self.log.debug(f"reset_drives_louvers: reset={reset}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(
+            command=CommandName.RESET_DRIVES_LOUVERS, reset=reset
+        )
+
     async def set_zero_az(self) -> None:
         """Take the current position of the dome as zero.
 
@@ -1129,9 +1170,9 @@ class MTDomeCom:
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.SET_ZERO_AZ)
 
-    async def home(self, sub_system_ids: int) -> None:
-        """Search the home position of the Aperture Shutter, which is the
-        closed position.
+    async def home(self, sub_system_ids: int, direction: OpenClose) -> None:
+        """Search the home position of the Aperture Shutter in the indicated
+        direction.
 
         This is necessary in case the ApSCS (Aperture Shutter Control system)
         was shutdown with the Aperture Shutter not fully open or fully closed.
@@ -1140,6 +1181,8 @@ class MTDomeCom:
         ----------
         sub_system_ids : int
             Bitmask of the sub-systems to home.
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
         """
         for sub_system_id in SubSystemId:
             self.log.debug(f"home: sub_system_id={sub_system_id.name}")
@@ -1148,7 +1191,9 @@ class MTDomeCom:
                 and sub_system_id in self.set_home_command_dict
             ):
                 command = self.set_home_command_dict[sub_system_id]
-                await self._schedule_command_if_power_management_active(command=command)
+                await self._schedule_command_if_power_management_active(
+                    command=command, direction=direction
+                )
 
     async def config_llcs(self, system: LlcName, settings: MaxValuesConfigType) -> None:
         """Config command not to be executed by SAL.
@@ -1451,3 +1496,15 @@ class MTDomeCom:
             if x not in keys_to_remove
         }
         return dict_with_keys_removed
+
+    async def __aenter__(self) -> MTDomeCom:
+        await self.connect()
+        return self
+
+    async def __aexit__(
+        self,
+        type: typing.Type[BaseException],
+        value: BaseException,
+        traceback: types.TracebackType,
+    ) -> None:
+        await self.disconnect()

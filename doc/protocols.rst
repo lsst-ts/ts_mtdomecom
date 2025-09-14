@@ -163,10 +163,12 @@ This is the response schema.
 .. literalinclude:: ../python/lsst/ts/mtdomecom/schema/response.py
    :language: python
 
+
 This is the AMCS status schema.
 
-.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/amcs_status.py
-   :language: python
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/amcs_status.json
+   :language: json
+
 
 This is the ApSCS status schema.
 
@@ -206,5 +208,5 @@ This is the RAD status schema.
 
 This is the ThCS status schema.
 
-.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/thcs_status.py
-   :language: python
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/thcs_status.json
+   :language: json

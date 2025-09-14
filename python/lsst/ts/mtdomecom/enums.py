@@ -23,6 +23,7 @@ __all__ = [
     "CSCS_COMMANDS",
     "EL_COMMANDS",
     "LOUVERS_COMMANDS",
+    "LOUVERS_ENABLED",
     "POWER_MANAGEMENT_COMMANDS",
     "RAD_COMMANDS",
     "SHUTTER_COMMANDS",
@@ -49,7 +50,7 @@ import enum
 import typing
 from dataclasses import dataclass
 
-from lsst.ts.xml.enums.MTDome import MotionState, OnOff, SubSystemId
+from lsst.ts.xml.enums.MTDome import Louver, MotionState, OnOff, SubSystemId
 
 
 class InternalMotionState(enum.IntEnum):
@@ -59,10 +60,6 @@ class InternalMotionState(enum.IntEnum):
     """
 
     STATIONARY = enum.auto()
-    # TODO DM-50801 Remove the mappings below this line as soon as the enum
-    #  values are available in ts_xml.
-    FINAL_LOW_CLOSE_LS_ENGAGED = enum.auto()
-    FINAL_LOW_OPEN_LS_ENGAGED = enum.auto()
 
 
 # Dict holding translations from motion states, that the lower level
@@ -70,18 +67,6 @@ class InternalMotionState(enum.IntEnum):
 motion_state_translations = {
     InternalMotionState.STATIONARY.name: MotionState.STOPPED_BRAKED
 }
-# TODO DM-50801 Remove the mappings below this line as soon as the enum
-#  values are available in ts_xml.
-try:
-    motion_state_translations[InternalMotionState.FINAL_LOW_CLOSE_LS_ENGAGED.name] = (
-        MotionState.FINAL_DOWN_CLOSE_LS_ENGAGED,
-    )
-    motion_state_translations[InternalMotionState.FINAL_LOW_OPEN_LS_ENGAGED.name] = (
-        MotionState.FINAL_DOWN_OPEN_LS_ENGAGED
-    )
-except AttributeError:
-    # Ignore
-    pass
 
 
 class CommandName(enum.StrEnum):
@@ -110,6 +95,7 @@ class CommandName(enum.StrEnum):
     OPEN_SHUTTER = "openShutter"
     PARK = "park"
     RESET_DRIVES_AZ = "resetDrivesAz"
+    RESET_DRIVES_LOUVERS = "resetDrivesLouvers"
     RESET_DRIVES_SHUTTER = "resetDrivesShutter"
     RESTORE = "restore"
     SET_DEGRADED_AZ = "setDegradedAz"
@@ -260,6 +246,10 @@ POWER_MANAGEMENT_COMMANDS = [
     CommandName.OPEN_SHUTTER,
     CommandName.SET_LOUVERS,
 ]
+
+# Louvers currently enabled.
+# TODO OSW-1057 move to ts_config_mttcs.
+LOUVERS_ENABLED = [Louver.E1]
 
 
 @dataclass(order=True)

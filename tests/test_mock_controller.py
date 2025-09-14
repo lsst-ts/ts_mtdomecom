@@ -28,7 +28,7 @@ import typing
 import numpy as np
 import pytest
 from lsst.ts import mtdomecom, tcpip, utils
-from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OperationalMode
+from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OpenClose, OperationalMode
 
 _CURRENT_TAI = 100001
 
@@ -1125,7 +1125,16 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
             assert (
-                thcs_status["temperature"] == [temperature] * mtdomecom.THCS_NUM_SENSORS
+                thcs_status["driveTemperature"]
+                == [temperature] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
+            )
+            assert (
+                thcs_status["motorCoilTemperature"]
+                == [temperature] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
+            )
+            assert (
+                thcs_status["cabinetTemperature"]
+                == [temperature] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
             )
 
     async def test_inflate(self) -> None:
@@ -1230,7 +1239,18 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.data = await self.read()
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
-            assert thcs_status["temperature"] == [0.0] * mtdomecom.THCS_NUM_SENSORS
+            assert (
+                thcs_status["driveTemperature"]
+                == [0.0] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
+            )
+            assert (
+                thcs_status["motorCoilTemperature"]
+                == [0.0] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
+            )
+            assert (
+                thcs_status["cabinetTemperature"]
+                == [0.0] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
+            )
 
             await self.write(command=mtdomecom.CommandName.STATUS_RAD, parameters={})
             self.data = await self.read()
@@ -1416,7 +1436,10 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 position_actual=initial_position_actual.tolist(),
             )
 
-            await self.write(command=mtdomecom.CommandName.HOME, parameters={})
+            await self.write(
+                command=mtdomecom.CommandName.HOME,
+                parameters={"direction": OpenClose.CLOSE},
+            )
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.data["timeout"] == pytest.approx(0.0)
@@ -1493,3 +1516,17 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 await self.write(command=cmd, parameters={})
                 with pytest.raises(TimeoutError):
                     self.data = await self.read()
+
+    async def test_thermal_schema(self) -> None:
+        async with self.create_mtdomecom_controller(), self.create_client():
+            await self.write(command=mtdomecom.CommandName.STATUS_AMCS, parameters={})
+            llc_status = await self.read()
+            amcs_status = llc_status["AMCS"]
+            await self.write(command=mtdomecom.CommandName.STATUS_THCS, parameters={})
+            llc_status = await self.read()
+            thcs_status = llc_status["ThCS"]
+            assert "driveTemperature" not in amcs_status
+            assert "temperature" not in thcs_status
+            assert "driveTemperature" in thcs_status
+            assert "motorCoilTemperature" in thcs_status
+            assert "cabinetTemperature" in thcs_status

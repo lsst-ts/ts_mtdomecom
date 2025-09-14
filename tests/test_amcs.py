@@ -39,7 +39,10 @@ START_TAI = 10001.0
 
 class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
     async def prepare_amcs(
-        self, start_position: float, max_speed: float, start_tai: float
+        self,
+        start_position: float,
+        max_speed: float,
+        start_tai: float,
     ) -> None:
         """Prepare the AmcsStatus for future commands.
 
@@ -93,6 +96,7 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         elif expected_motion_state == MotionState.CRAWLING:
             expected_drive_current = [AMCS_CURRENT_PER_MOTOR_CRAWLING] * AMCS_NUM_MOTORS
         assert expected_drive_current == self.amcs.llc_status["driveCurrentActual"]
+        assert "driveTemperature" not in self.amcs.llc_status
 
     async def verify_move_duration(
         self,
@@ -881,6 +885,19 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
 
         await self.verify_amcs_state(
             tai=current_tai,
+            expected_position=0.0,
+            expected_velocity=0.0,
+            expected_motion_state=MotionState.STOPPED,
+        )
+
+    async def test_new_temperature_schema(self) -> None:
+        await self.prepare_amcs(
+            start_position=0.0,
+            max_speed=0.0,
+            start_tai=0.0,
+        )
+        await self.verify_amcs_state(
+            tai=1.0,
             expected_position=0.0,
             expected_velocity=0.0,
             expected_motion_state=MotionState.STOPPED,

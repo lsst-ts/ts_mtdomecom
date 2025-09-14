@@ -26,7 +26,7 @@ import logging
 import typing
 
 from lsst.ts import tcpip, utils
-from lsst.ts.xml.enums.MTDome import MotionState
+from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
 
 from .encoding_tools import validate
 from .enums import (
@@ -152,6 +152,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.OPEN_SHUTTER: self.open_shutter,
             CommandName.PARK: self.park,
             CommandName.RESET_DRIVES_AZ: self.reset_drives_az,
+            CommandName.RESET_DRIVES_LOUVERS: self.reset_drives_louvers,
             CommandName.RESET_DRIVES_SHUTTER: self.reset_drives_shutter,
             CommandName.RESTORE: self.restore,
             CommandName.SET_DEGRADED_AZ: self.set_degraded_az,
@@ -809,7 +810,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each AZ drive: 0 means don't
             reset, 1 means reset.
 
@@ -827,12 +828,30 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.amcs is not None
         return await self.amcs.reset_drives_az(self.current_tai, reset)
 
+    async def reset_drives_louvers(self, reset: list[int]) -> None:
+        """Reset one or more Louver drives.
+
+        Parameters
+        ----------
+        reset: `list`[`int`]
+            Desired reset action to execute on each Louver drive: 0
+            means don't reset, 1 means reset.
+
+        Notes
+        -----
+        This is necessary when exiting from FAULT state without going to
+        Degraded Mode since the drives don't reset themselves.
+        The number of values in the reset parameter is not validated.
+        """
+        assert self.lcs is not None
+        await self.lcs.reset_drives_louvers(self.current_tai, reset)
+
     async def reset_drives_shutter(self, reset: list[int]) -> None:
         """Reset one or more Aperture Shutter drives.
 
         Parameters
         ----------
-        reset: array of int
+        reset: `list`[`int`]
             Desired reset action to execute on each Aperture Shutter drive: 0
             means don't reset, 1 means reset.
 
@@ -858,11 +877,16 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.amcs is not None
         return await self.amcs.set_zero_az(self.current_tai)
 
-    async def home(self) -> float:
+    async def home(self, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
         was shutdown with the Aperture Shutter not fully open or fully closed.
+
+        Parameters
+        ----------
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
 
         Returns
         -------
@@ -870,7 +894,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             The estimated duration of the execution of the command.
         """
         assert self.apscs is not None
-        return await self.apscs.home(self.current_tai)
+        return await self.apscs.home(self.current_tai, direction)
 
 
 async def main() -> None:

@@ -350,7 +350,6 @@ class AmcsStatus(BaseMockStatus):
             "driveTorqueActual": self.drive_torque_actual.tolist(),
             "driveTorqueCommanded": self.drive_torque_commanded.tolist(),
             "driveCurrentActual": self.drive_current_actual.tolist(),
-            "driveTemperature": self.drive_temperature.tolist(),
             "encoderHeadRaw": self.encoder_head_raw.tolist(),
             "encoderHeadCalibrated": self.encoder_head_calibrated.tolist(),
             "barcodeHeadRaw": self.barcode_head_raw.tolist(),

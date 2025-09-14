@@ -26,7 +26,7 @@ import math
 import random
 
 import numpy as np
-from lsst.ts.xml.enums.MTDome import MotionState
+from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
 
 from ..constants import (
     APSCS_CLOSED_POSITION,
@@ -62,18 +62,6 @@ def get_duration(start_position: float, end_position: float, max_speed: float) -
     """
     duration = math.fabs(end_position - start_position) / max_speed
     return duration
-
-
-# TODO OSW-329 Remove the mappings below this line as soon as the enum
-#  values are available in ts_xml.
-try:
-    floce = MotionState.FINAL_DOWN_CLOSE_LS_ENGAGED
-except AttributeError:
-    floce = MotionState.FINAL_LOW_CLOSE_LS_ENGAGED
-try:
-    flcle = MotionState.FINAL_DOWN_OPEN_LS_ENGAGED
-except AttributeError:
-    flcle = MotionState.FINAL_LOW_OPEN_LS_ENGAGED
 
 
 class ApscsStatus(BaseMockStatus):
@@ -191,7 +179,7 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_proximity_open_ls_engaged(shutter_id)
             case MotionState.FINAL_UP_OPEN_LS_ENGAGED.name:
                 await self._handle_final_up_open_ls_engaged(shutter_id)
-            case flcle.name:
+            case MotionState.FINAL_LOW_OPEN_LS_ENGAGED.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
             case MotionState.CLOSING.name:
                 await self._handle_opening_or_closing(current_tai, shutter_id)
@@ -199,7 +187,7 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_proximity_closed_ls_engaged(shutter_id)
             case MotionState.FINAL_UP_CLOSE_LS_ENGAGED.name:
                 await self._handle_final_up_close_ls_engaged(shutter_id)
-            case floce.name:
+            case MotionState.FINAL_LOW_CLOSE_LS_ENGAGED.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
             case MotionState.STOPPING.name:
                 self.current_state[shutter_id] = MotionState.STOPPED.name
@@ -271,7 +259,7 @@ class ApscsStatus(BaseMockStatus):
         if self.start_state[shutter_id] == MotionState.STOPPING.name:
             self.current_state[shutter_id] = MotionState.STOPPING.name
         else:
-            self.current_state[shutter_id] = flcle.name
+            self.current_state[shutter_id] = MotionState.FINAL_LOW_OPEN_LS_ENGAGED.name
 
     async def _handle_proximity_closed_ls_engaged(self, shutter_id: int) -> None:
         if self.start_state[shutter_id] == MotionState.STOPPING.name:
@@ -283,7 +271,7 @@ class ApscsStatus(BaseMockStatus):
         if self.start_state[shutter_id] == MotionState.STOPPING.name:
             self.current_state[shutter_id] = MotionState.STOPPING.name
         else:
-            self.current_state[shutter_id] = floce.name
+            self.current_state[shutter_id] = MotionState.FINAL_LOW_CLOSE_LS_ENGAGED.name
 
     async def _handle_brakes_disengaged(self, shutter_id: int) -> None:
         if self.start_state[shutter_id] == MotionState.OPENING.name:
@@ -531,7 +519,7 @@ class ApscsStatus(BaseMockStatus):
         duration = max(durations)
         return duration
 
-    async def home(self, start_tai: float) -> float:
+    async def home(self, start_tai: float, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
@@ -544,13 +532,18 @@ class ApscsStatus(BaseMockStatus):
             The TAI time, unix seconds, when the command was issued. To model
             the real dome, this should be the current time. However, for unit
             tests it can be convenient to use other values.
+        direction : `OpenClose`
+            The direction to home the aperture shutter to.
 
         Returns
         -------
         `float`
             The expected duration of the command [s].
         """
-        return await self.closeShutter(start_tai)
+        if direction == OpenClose.OPEN:
+            return await self.openShutter(start_tai)
+        else:
+            return await self.closeShutter(start_tai)
 
     async def exit_fault(self, start_tai: float) -> float:
         """Clear the fault state.
