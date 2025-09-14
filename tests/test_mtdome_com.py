@@ -536,6 +536,36 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 await self.mtdomecom_com.open_shutter()
             assert "was not received by the rotating part" in str(ve.value)
 
+    async def test_communication_error_fixed_part(self) -> None:
+        async with self.create_mtdomecom():
+            await self.mtdomecom_com.disconnect()
+            telemetry_callbacks = {mtdomecom.LlcName.AMCS: self.handle_llc_status}
+            self.mtdomecom_com = mtdomecom.MTDomeCom(
+                log=self.log,
+                config=types.SimpleNamespace(),
+                simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+                telemetry_callbacks=telemetry_callbacks,
+                start_periodic_tasks=False,
+            )
+
+            await self.mtdomecom_com.connect()
+            assert len(self.mtdomecom_com.telemetry_callbacks) == len(
+                telemetry_callbacks
+            )
+
+            # No communication error so should work.
+            await self.mtdomecom_com.status_amcs()
+            assert (
+                self.llc_status
+                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
+            )
+
+            await self.mtdomecom_com.mock_ctrl.close()
+
+            # Communication error so should not work.
+            await self.mtdomecom_com.status_amcs()
+            assert "exception" in self.llc_status
+
     @patch("lsst.ts.mtdomecom.mtdome_com._TIMEOUT", 3.0)
     async def test_timeout_error(self) -> None:
         async with self.create_mtdomecom():
