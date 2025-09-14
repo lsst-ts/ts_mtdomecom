@@ -1,0 +1,1 @@
+Added reporting exception in status when not connected.
