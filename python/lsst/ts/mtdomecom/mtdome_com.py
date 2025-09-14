@@ -714,7 +714,7 @@ class MTDomeCom:
                 try:
                     async with asyncio.timeout(_TIMEOUT):
                         data = await self.client.read_json()
-                except (TimeoutError, ConnectionError) as exc:
+                except (TimeoutError, ConnectionError, EOFError) as exc:
                     self.communication_error_report = {
                         "command_name": CommandName(command_name),
                         "exception": exc,
