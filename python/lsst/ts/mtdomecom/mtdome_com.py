@@ -1174,13 +1174,20 @@ class MTDomeCom:
             Bitmask of the sub-systems to home.
         """
         for sub_system_id in SubSystemId:
-            self.log.debug(f"home: sub_system_id={sub_system_id.name}")
             if (
                 sub_system_id & sub_system_ids
                 and sub_system_id in self.set_home_command_dict
             ):
+                self.log.debug(f"home: sub_system_id={sub_system_id.name}")
                 command = self.set_home_command_dict[sub_system_id]
-                await self._schedule_command_if_power_management_active(command=command)
+                if self.simulation_mode == ValidSimulationMode.NORMAL_OPERATIONS:
+                    await self._schedule_command_if_power_management_active(
+                        command=command, direction=["CLOSED", "CLOSED"]
+                    )
+                else:
+                    await self._schedule_command_if_power_management_active(
+                        command=command
+                    )
 
     async def config_llcs(self, system: LlcName, settings: MaxValuesConfigType) -> None:
         """Config command not to be executed by SAL.
