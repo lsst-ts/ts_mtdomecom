@@ -8,6 +8,32 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.0 (2025-09-14)
+===================
+
+New Features
+------------
+
+- Added option to enable new temperature telemetry schema. (`OSW-331 <https://rubinobs.atlassian.net//browse/OSW-331>`_)
+- Added resetDrivesLouvers command. (`OSW-1042 <https://rubinobs.atlassian.net//browse/OSW-1042>`_)
+- Added log message indicating which louvers are enabled. (`OSW-1042 <https://rubinobs.atlassian.net//browse/OSW-1042>`_)
+- Enabled all LCS commands. (`OSW-1042 <https://rubinobs.atlassian.net//browse/OSW-1042>`_)
+
+
+Bug Fixes
+---------
+
+- Added missing 'direction' parameter to home command. (`OSW-1042 <https://rubinobs.atlassian.net//browse/OSW-1042>`_)
+- Added reporting exception in status when not connected. (`OSW-1060 <https://rubinobs.atlassian.net//browse/OSW-1060>`_)
+
+
+Performance Enhancement
+-----------------------
+
+- Removed all references to the old ApSCS states. (`OSW-1042 <https://rubinobs.atlassian.net//browse/OSW-1042>`_)
+- Removed all references to the old thermal schema. (`OSW-1042 <https://rubinobs.atlassian.net//browse/OSW-1042>`_)
+
+
 v0.2.15 (2025-08-08)
 ====================
 
