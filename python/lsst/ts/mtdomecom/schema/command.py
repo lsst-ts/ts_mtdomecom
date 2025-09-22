@@ -1085,7 +1085,14 @@ registry["command"] = json.loads(
             "type": "object",
             "properties": {
               "direction": {
-                "enum": ["OPEN", "CLOSE"]
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "enum": ["OPEN", "CLOSED"]
+                  }
+                ]
               }
             },
 			"required":[

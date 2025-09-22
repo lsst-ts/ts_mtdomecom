@@ -310,7 +310,8 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 100.0
             ] * mtdomecom.APSCS_NUM_SHUTTERS
             await self.mtdomecom_com.home(
-                sub_system_ids=SubSystemId.APSCS, direction=OpenClose.CLOSE
+                sub_system_ids=SubSystemId.APSCS,
+                direction=[OpenClose.CLOSE, OpenClose.CLOSE],
             )
             assert (
                 self.mtdomecom_com.mock_ctrl.apscs.target_state

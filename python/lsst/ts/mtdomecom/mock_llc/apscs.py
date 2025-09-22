@@ -519,7 +519,7 @@ class ApscsStatus(BaseMockStatus):
         duration = max(durations)
         return duration
 
-    async def home(self, start_tai: float, direction: OpenClose) -> float:
+    async def home(self, start_tai: float, direction: list[OpenClose]) -> float:
         """Home the Aperture Shutter, which is the closed position.
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
@@ -532,15 +532,18 @@ class ApscsStatus(BaseMockStatus):
             The TAI time, unix seconds, when the command was issued. To model
             the real dome, this should be the current time. However, for unit
             tests it can be convenient to use other values.
-        direction : `OpenClose`
-            The direction to home the aperture shutter to.
+        direction : `list`[`OpenClose`]
+            The direction to home the aperture shutter to. The list should
+            contain 2 values, one for each door. This is not checked. The
+            first value only is always taken and both doors are homed toward
+            the same direction.
 
         Returns
         -------
         `float`
             The expected duration of the command [s].
         """
-        if direction == OpenClose.OPEN:
+        if direction[0] == OpenClose.OPEN:
             return await self.openShutter(start_tai)
         else:
             return await self.closeShutter(start_tai)
