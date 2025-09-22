@@ -1438,7 +1438,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
             await self.write(
                 command=mtdomecom.CommandName.HOME,
-                parameters={"direction": OpenClose.CLOSE},
+                parameters={"direction": [OpenClose.CLOSE, OpenClose.CLOSE]},
             )
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
