@@ -8,6 +8,24 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.2 (2025-10-09)
+===================
+
+Performance Enhancement
+-----------------------
+
+- Updated ts-conda-build dependency version and conda build string. (`OSW-1207 <https://rubinobs.atlassian.net//browse/OSW-1207>`_)
+
+
+v0.3.1 (2025-09-22)
+===================
+
+Bug Fixes
+---------
+
+- Fixed aperture shutter home command direction parameter. (`OSW-1066 <https://rubinobs.atlassian.net//browse/OSW-1066>`_)
+
+
 v0.3.0 (2025-09-14)
 ===================
 
