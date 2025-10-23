@@ -54,9 +54,7 @@ from .mock_llc import (
 
 
 # Commands for the rotating part of the MTDome.
-ROTATING_COMMANDS = (
-    CSCS_COMMANDS + EL_COMMANDS + LOUVERS_COMMANDS + RAD_COMMANDS + SHUTTER_COMMANDS
-)
+ROTATING_COMMANDS = CSCS_COMMANDS + EL_COMMANDS + LOUVERS_COMMANDS + RAD_COMMANDS + SHUTTER_COMMANDS
 
 # Wait time [sec] before sending a reply. This mocks a network timeout.
 REPLY_WAIT_TIME = 600
@@ -268,9 +266,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         try:
             validate(data)
         except Exception:
-            self.log.warning(
-                f"Ignoring command {data} because it has incorrect schema."
-            )
+            self.log.warning(f"Ignoring command {data} because it has incorrect schema.")
             if "commandId" in data:
                 self._command_id = data["commandId"]
             response = ResponseCode.INCORRECT_PARAMETERS
@@ -406,15 +402,9 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         state = {llc_name: llc.llc_status}
         if llc_name == LlcName.AMCS:
             assert self.thcs is not None
-            if (
-                llc.llc_status["status"]["status"]
-                == MotionState.STARTING_MOTOR_COOLING.name
-            ):
+            if llc.llc_status["status"]["status"] == MotionState.STARTING_MOTOR_COOLING.name:
                 await self.thcs.start_cooling(self.current_tai)
-            elif (
-                llc.llc_status["status"]["status"]
-                == MotionState.STOPPING_MOTOR_COOLING.name
-            ):
+            elif llc.llc_status["status"]["status"] == MotionState.STOPPING_MOTOR_COOLING.name:
                 await self.thcs.stop_cooling(self.current_tai)
         await self.write_reply(response=ResponseCode.OK, **state)
 

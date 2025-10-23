@@ -34,17 +34,14 @@ class SlipRingTestCase(unittest.IsolatedAsyncioTestCase):
         slip_ring = mtdomecom.power_management.SlipRing(log=self.log, index=1)
 
         data = [
-            SlipRingTestData(
-                max_power_drawn=0.0, time_over_limit=0.0, expected_cool_down_time=0.0
-            ),
+            SlipRingTestData(max_power_drawn=0.0, time_over_limit=0.0, expected_cool_down_time=0.0),
             SlipRingTestData(
                 max_power_drawn=mtdomecom.power_management.CONTINUOUS_SLIP_RING_POWER_CAPACITY,
                 time_over_limit=0.0,
                 expected_cool_down_time=0.0,
             ),
             SlipRingTestData(
-                max_power_drawn=mtdomecom.power_management.CONTINUOUS_SLIP_RING_POWER_CAPACITY
-                + 10000.0,
+                max_power_drawn=mtdomecom.power_management.CONTINUOUS_SLIP_RING_POWER_CAPACITY + 10000.0,
                 time_over_limit=100.0,
                 expected_cool_down_time=30.303030303030,
             ),
@@ -58,20 +55,14 @@ class SlipRingTestCase(unittest.IsolatedAsyncioTestCase):
         for d in data:
             slip_ring.max_power_drawn = d.max_power_drawn
             slip_ring.time_over_limit = d.time_over_limit
-            assert slip_ring.get_cool_down_time() == pytest.approx(
-                d.expected_cool_down_time
-            )
+            assert slip_ring.get_cool_down_time() == pytest.approx(d.expected_cool_down_time)
 
     async def test_get_available_power(self) -> None:
         self.log = logging.getLogger(type(self).__name__)
-        slip_ring = mtdomecom.power_management.SlipRing(
-            log=self.log, index=1, disabled=True
-        )
+        slip_ring = mtdomecom.power_management.SlipRing(log=self.log, index=1, disabled=True)
         assert slip_ring.get_available_power(0.0) == pytest.approx(0.0)
 
-        with mock.patch(
-            "lsst.ts.mtdomecom.power_management.slip_ring.utils.current_tai"
-        ) as mock_tai:
+        with mock.patch("lsst.ts.mtdomecom.power_management.slip_ring.utils.current_tai") as mock_tai:
             slip_ring = mtdomecom.power_management.SlipRing(log=self.log, index=1)
             assert slip_ring.get_available_power(0.0) == pytest.approx(
                 mtdomecom.power_management.MAXIMUM_SLIP_RING_POWER_CAPACITY
@@ -113,9 +104,9 @@ class SlipRingTestCase(unittest.IsolatedAsyncioTestCase):
                 ),
             ]:
                 mock_tai.return_value = test_data.tai
-                assert slip_ring.get_available_power(
-                    test_data.power_drawn
-                ) == pytest.approx(test_data.expected_power_available)
+                assert slip_ring.get_available_power(test_data.power_drawn) == pytest.approx(
+                    test_data.expected_power_available
+                )
                 assert slip_ring.state == test_data.expected_state
                 mock_tai.assert_called()
 
@@ -158,8 +149,8 @@ class SlipRingTestCase(unittest.IsolatedAsyncioTestCase):
                 ),
             ]:
                 mock_tai.return_value = test_data.tai
-                assert slip_ring.get_available_power(
-                    test_data.power_drawn
-                ) == pytest.approx(test_data.expected_power_available)
+                assert slip_ring.get_available_power(test_data.power_drawn) == pytest.approx(
+                    test_data.expected_power_available
+                )
                 assert slip_ring.state == test_data.expected_state
                 mock_tai.assert_called()

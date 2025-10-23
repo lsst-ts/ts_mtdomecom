@@ -54,41 +54,21 @@ class LcsStatus(BaseMockStatus):
         self.start_position = np.zeros(LCS_NUM_LOUVERS, dtype=float)
         self.position_actual = np.zeros(LCS_NUM_LOUVERS, dtype=float)
         self.position_commanded = np.zeros(LCS_NUM_LOUVERS, dtype=float)
-        self.drive_torque_actual = np.zeros(
-            LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float
-        )
-        self.drive_torque_commanded = np.zeros(
-            LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float
-        )
-        self.drive_current_actual = np.zeros(
-            LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float
-        )
-        self.drive_temperature = np.full(
-            LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, 20.0, dtype=float
-        )
-        self.encoder_head_raw = np.zeros(
-            LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float
-        )
-        self.encoder_head_calibrated = np.zeros(
-            LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float
-        )
+        self.drive_torque_actual = np.zeros(LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float)
+        self.drive_torque_commanded = np.zeros(LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float)
+        self.drive_current_actual = np.zeros(LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float)
+        self.drive_temperature = np.full(LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, 20.0, dtype=float)
+        self.encoder_head_raw = np.zeros(LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float)
+        self.encoder_head_calibrated = np.zeros(LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER, dtype=float)
         self.power_draw = 0.0
 
         # State machine related attributes.
-        self.current_state = np.full(
-            LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object
-        )
-        self.start_state = np.full(
-            LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object
-        )
-        self.target_state = np.full(
-            LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object
-        )
+        self.current_state = np.full(LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object)
+        self.start_state = np.full(LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object)
+        self.target_state = np.full(LCS_NUM_LOUVERS, InternalMotionState.STATIONARY.name, dtype=object)
 
         # Error state related attributes.
-        self.drives_in_error_state = [
-            [False] * LCS_NUM_MOTORS_PER_LOUVER
-        ] * LCS_NUM_LOUVERS
+        self.drives_in_error_state = [[False] * LCS_NUM_MOTORS_PER_LOUVER] * LCS_NUM_LOUVERS
 
     async def evaluate_state(self, current_tai: float, louver_id: int) -> None:
         """Evaluate the state and perform a state transition if necessary.
@@ -107,9 +87,7 @@ class LcsStatus(BaseMockStatus):
                 await self._handle_stationary(current_tai, louver_id)
             case _:
                 # Not a valid state, so empty.
-                self.log.warning(
-                    f"Not handling invalid target state {self.target_state[louver_id]}"
-                )
+                self.log.warning(f"Not handling invalid target state {self.target_state[louver_id]}")
 
     async def _handle_stopped(self, louver_id: int) -> None:
         # STATIONARY is the final state for the setLouvers, closeLouveres and
@@ -124,9 +102,7 @@ class LcsStatus(BaseMockStatus):
                     MotionState.OPENING.name,
                     MotionState.CLOSING.name,
                 ]:
-                    self.current_state[louver_id] = (
-                        MotionState.ENABLING_MOTOR_POWER.name
-                    )
+                    self.current_state[louver_id] = MotionState.ENABLING_MOTOR_POWER.name
             case MotionState.ENABLING_MOTOR_POWER.name:
                 self.current_state[louver_id] = MotionState.MOTOR_POWER_ON.name
             case MotionState.MOTOR_POWER_ON.name:
@@ -158,8 +134,7 @@ class LcsStatus(BaseMockStatus):
 
     async def _handle_moving(self, current_tai: float, louver_id: int) -> None:
         time_needed = (
-            abs(self.position_commanded[louver_id] - self.start_position[louver_id])
-            / LCS_MOTION_VELOCITY
+            abs(self.position_commanded[louver_id] - self.start_position[louver_id]) / LCS_MOTION_VELOCITY
         )
         time_so_far = current_tai - self.command_time_tai
         time_frac = 1.0
@@ -169,12 +144,8 @@ class LcsStatus(BaseMockStatus):
             self.position_actual[louver_id] = self.position_commanded[louver_id]
             self.current_state[louver_id] = MotionState.STOPPING.name
         else:
-            distance = (
-                self.position_commanded[louver_id] - self.start_position[louver_id]
-            )
-            self.position_actual[louver_id] = (
-                self.start_position[louver_id] + distance * time_frac
-            )
+            distance = self.position_commanded[louver_id] - self.start_position[louver_id]
+            self.position_actual[louver_id] = self.start_position[louver_id] + distance * time_frac
 
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in
@@ -191,16 +162,12 @@ class LcsStatus(BaseMockStatus):
             # Louver motors come in pairs of two.
             if motion_state == MotionState.MOVING.name:
                 self.drive_current_actual[
-                    louver_id
-                    * LCS_NUM_MOTORS_PER_LOUVER : (louver_id + 1)
-                    * LCS_NUM_MOTORS_PER_LOUVER
+                    louver_id * LCS_NUM_MOTORS_PER_LOUVER : (louver_id + 1) * LCS_NUM_MOTORS_PER_LOUVER
                 ] = LCS_CURRENT_PER_MOTOR
                 self.power_draw = LOUVERS_POWER_DRAW
             else:
                 self.drive_current_actual[
-                    louver_id
-                    * LCS_NUM_MOTORS_PER_LOUVER : (louver_id + 1)
-                    * LCS_NUM_MOTORS_PER_LOUVER
+                    louver_id * LCS_NUM_MOTORS_PER_LOUVER : (louver_id + 1) * LCS_NUM_MOTORS_PER_LOUVER
                 ] = 0.0
                 self.power_draw = 0.0
         self.llc_status = {
@@ -300,9 +267,7 @@ class LcsStatus(BaseMockStatus):
         """
         for louver_id in range(LCS_NUM_LOUVERS):
             if any(self.drives_in_error_state[louver_id]):
-                raise RuntimeError(
-                    "Make sure to reset drives before exiting from fault."
-                )
+                raise RuntimeError("Make sure to reset drives before exiting from fault.")
 
         self.command_time_tai = current_tai
         self.start_state[:] = MotionState.GO_STATIONARY.name
@@ -345,10 +310,7 @@ class LcsStatus(BaseMockStatus):
             )
         for louvers_id in range(LCS_NUM_LOUVERS):
             for i, val in enumerate(
-                reset[
-                    louvers_id * LCS_NUM_LOUVERS : louvers_id * LCS_NUM_LOUVERS
-                    + LCS_NUM_MOTORS_PER_LOUVER
-                ]
+                reset[louvers_id * LCS_NUM_LOUVERS : louvers_id * LCS_NUM_LOUVERS + LCS_NUM_MOTORS_PER_LOUVER]
             ):
                 if val == 1:
                     self.drives_in_error_state[louvers_id][i] = False
@@ -389,8 +351,7 @@ class LcsStatus(BaseMockStatus):
             await self._handle_moving(start_tai, louvers_id)
             for i, val in enumerate(
                 drives_in_error[
-                    louvers_id * LCS_NUM_LOUVERS : louvers_id * LCS_NUM_LOUVERS
-                    + LCS_NUM_MOTORS_PER_LOUVER
+                    louvers_id * LCS_NUM_LOUVERS : louvers_id * LCS_NUM_LOUVERS + LCS_NUM_MOTORS_PER_LOUVER
                 ]
             ):
                 self.drives_in_error_state[louvers_id][i] = val == 1

@@ -80,9 +80,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         ) as self.client:
             yield
 
-    async def read(
-        self, timeout: float = DEFAULT_TIMEOUT, assert_command_id: bool = True
-    ) -> dict:
+    async def read(self, timeout: float = DEFAULT_TIMEOUT, assert_command_id: bool = True) -> dict:
         """Utility function to read data using a ``tcpip.Client``.
 
         Parameters
@@ -103,9 +101,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert data["commandId"] == self.command_id
         return data
 
-    async def write(
-        self, command_id_to_use: typing.Any = None, **data: typing.Any
-    ) -> None:
+    async def write(self, command_id_to_use: typing.Any = None, **data: typing.Any) -> None:
         """Utility function to write data using a ``tcpip.Client``.
 
         Parameters
@@ -166,9 +162,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         )
         self.data = await self.read()
         assert self.data["response"] == mtdomecom.ResponseCode.OK
-        assert self.data["timeout"] == pytest.approx(
-            self.mock_ctrl.amcs.end_tai - _CURRENT_TAI
-        )
+        assert self.data["timeout"] == pytest.approx(self.mock_ctrl.amcs.end_tai - _CURRENT_TAI)
 
     async def verify_amcs_move(
         self,
@@ -203,9 +197,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         self.data = await self.read()
         amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
         assert amcs_status["status"]["status"] == expected_status.name
-        assert amcs_status["positionActual"] == pytest.approx(
-            expected_position, rel=1e-3
-        )
+        assert amcs_status["positionActual"] == pytest.approx(expected_position, rel=1e-3)
 
     async def test_moveAz_zero_pos_pos(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -442,9 +434,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             )
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
-            assert self.data["timeout"] == pytest.approx(
-                self.mock_ctrl.amcs.end_tai - _CURRENT_TAI
-            )
+            assert self.data["timeout"] == pytest.approx(self.mock_ctrl.amcs.end_tai - _CURRENT_TAI)
 
             # Give some time to the mock device to move.
             self.mock_ctrl.current_tai = self.mock_ctrl.current_tai + 1.0
@@ -484,9 +474,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert amcs_status["positionActual"] >= math.radians(1.7)
             assert amcs_status["positionActual"] <= math.radians(1.9)
 
-    async def prepare_lwscs_move(
-        self, start_position: float, target_position: float
-    ) -> None:
+    async def prepare_lwscs_move(self, start_position: float, target_position: float) -> None:
         """Utility method for preparing the initial state of LWSCS for easier
         testing.
 
@@ -511,9 +499,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         )
         self.data = await self.read()
         assert self.data["response"] == mtdomecom.ResponseCode.OK
-        assert self.data["timeout"] == pytest.approx(
-            self.mock_ctrl.lwscs.end_tai - _CURRENT_TAI
-        )
+        assert self.data["timeout"] == pytest.approx(self.mock_ctrl.lwscs.end_tai - _CURRENT_TAI)
 
     async def verify_lwscs_motion(
         self,
@@ -547,9 +533,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             # Test moving the LWSCS from 0 to 5 degrees. This should succeed.
             start_position = 0
             target_position = math.radians(5)
-            await self.prepare_lwscs_move(
-                start_position=start_position, target_position=target_position
-            )
+            await self.prepare_lwscs_move(start_position=start_position, target_position=target_position)
 
             # Move EL and check the position.
             await self.verify_lwscs_motion(
@@ -573,9 +557,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             # Test moving the LWSCS from 5 to 0 degrees. This should succeed.
             start_position = math.radians(5)
             target_position = math.radians(0)
-            await self.prepare_lwscs_move(
-                start_position=start_position, target_position=target_position
-            )
+            await self.prepare_lwscs_move(start_position=start_position, target_position=target_position)
 
             # Move EL and check the position.
             await self.verify_lwscs_motion(
@@ -604,9 +586,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             # encountered here is a TimeoutError, which is why a much more
             # general Exception is caught.
             try:
-                await self.prepare_lwscs_move(
-                    start_position=start_position, target_position=target_position
-                )
+                await self.prepare_lwscs_move(start_position=start_position, target_position=target_position)
                 self.fail("A ValueError should have been raised.")
             except Exception:
                 pass
@@ -615,9 +595,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         async with self.create_mtdomecom_controller(), self.create_client():
             start_position = 0
             target_position = math.radians(5)
-            await self.prepare_lwscs_move(
-                start_position=start_position, target_position=target_position
-            )
+            await self.prepare_lwscs_move(start_position=start_position, target_position=target_position)
 
             # Move EL and check the position and status.
             await self.verify_lwscs_motion(
@@ -638,9 +616,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert lwscs_status["positionActual"] >= math.radians(1.7)
             assert lwscs_status["positionActual"] <= math.radians(1.9)
 
-    async def prepare_lwscs_crawl(
-        self, start_position: float, target_velocity: float
-    ) -> None:
+    async def prepare_lwscs_crawl(self, start_position: float, target_velocity: float) -> None:
         """Utility method for preparing the initial state of LWSCS for easier
         testing.
 
@@ -669,9 +645,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
     async def test_crawlEl(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
-            await self.prepare_lwscs_crawl(
-                start_position=0, target_velocity=math.radians(0.1)
-            )
+            await self.prepare_lwscs_crawl(start_position=0, target_velocity=math.radians(0.1))
 
             # Let EL crawl a little and check the position.
             await self.verify_lwscs_motion(
@@ -685,9 +659,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 expected_position=math.radians(0.2),
             )
 
-    async def prepare_louvers(
-        self, louver_ids: list[int], target_positions: list[float]
-    ) -> None:
+    async def prepare_louvers(self, louver_ids: list[int], target_positions: list[float]) -> None:
         """Utility method for preparing the louvers for easier testing.
 
         Parameters
@@ -723,18 +695,12 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         self.mock_ctrl.lcs.command_time_tai = self.mock_ctrl.current_tai
         # Give some time to the mock devices to open.
         for louver_id in louver_ids:
-            await self.mock_ctrl.lcs.evaluate_state(
-                self.mock_ctrl.current_tai, louver_id
-            )
+            await self.mock_ctrl.lcs.evaluate_state(self.mock_ctrl.current_tai, louver_id)
         self.mock_ctrl.current_tai = self.mock_ctrl.current_tai + 31.0
         for louver_id in louver_ids:
-            await self.mock_ctrl.lcs.evaluate_state(
-                self.mock_ctrl.current_tai, louver_id
-            )
+            await self.mock_ctrl.lcs.evaluate_state(self.mock_ctrl.current_tai, louver_id)
 
-    async def verify_louvers(
-        self, louver_ids: list[int], target_positions: list[float]
-    ) -> None:
+    async def verify_louvers(self, louver_ids: list[int], target_positions: list[float]) -> None:
         """Utility method for verifying the positions of the louvers against
         the provided IDs and target
         positions.
@@ -794,9 +760,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
     async def test_closeLouvers(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
-            self.mock_ctrl.lcs.position_actual = np.full(
-                mtdomecom.LCS_NUM_LOUVERS, 100.0, dtype=float
-            )
+            self.mock_ctrl.lcs.position_actual = np.full(mtdomecom.LCS_NUM_LOUVERS, 100.0, dtype=float)
             await self.write(command=mtdomecom.CommandName.CLOSE_LOUVERS, parameters={})
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
@@ -857,14 +821,11 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_LCS, parameters={})
             self.data = await self.read()
             lcs_status = self.data[mtdomecom.LlcName.LCS.value]
-            assert (
-                lcs_status["status"]["status"]
-                == [MotionState.STOPPED.name] * mtdomecom.LCS_NUM_LOUVERS
-            )
+            assert lcs_status["status"]["status"] == [MotionState.STOPPED.name] * mtdomecom.LCS_NUM_LOUVERS
             assert lcs_status["positionActual"] == [0.0] * mtdomecom.LCS_NUM_LOUVERS
-            assert lcs_status["positionCommanded"] == [0.0] * louver_id + [
-                target_position
-            ] + [0.0] * (mtdomecom.LCS_NUM_LOUVERS - louver_id - 1)
+            assert lcs_status["positionCommanded"] == [0.0] * louver_id + [target_position] + [0.0] * (
+                mtdomecom.LCS_NUM_LOUVERS - louver_id - 1
+            )
 
     async def test_openShutter(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -884,9 +845,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 position_commanded=[100.0, 100.0],
             )
             self.mock_ctrl.current_tai = self.mock_ctrl.current_tai + 5.0
-            self.mock_ctrl.apscs.current_state = [
-                MotionState.OPENING.name
-            ] * mtdomecom.APSCS_NUM_SHUTTERS
+            self.mock_ctrl.apscs.current_state = [MotionState.OPENING.name] * mtdomecom.APSCS_NUM_SHUTTERS
             await self.validate_apscs(
                 status=MotionState.OPENING,
                 position_actual=[50.0, 50.0],
@@ -913,9 +872,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         if position_actual is not None:
             assert apscs_status["positionActual"] == pytest.approx(position_actual)
         if position_commanded is not None:
-            assert apscs_status["positionCommanded"] == pytest.approx(
-                position_commanded
-            )
+            assert apscs_status["positionCommanded"] == pytest.approx(position_commanded)
 
     async def test_closeShutter(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -952,9 +909,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STOP_SHUTTER, parameters={})
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
-            assert self.data["timeout"] == pytest.approx(
-                0.0
-            )  # stopping is instantaneous.
+            assert self.data["timeout"] == pytest.approx(0.0)  # stopping is instantaneous.
 
             await self.validate_apscs(
                 status=MotionState.STOPPED,
@@ -1026,9 +981,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                     {"target": "vmax", "setting": [amcs_vmax]},
                 ],
             }
-            await self.write(
-                command=mtdomecom.CommandName.CONFIG, parameters=parameters
-            )
+            await self.write(command=mtdomecom.CommandName.CONFIG, parameters=parameters)
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.data["timeout"] == mtdomecom.MockMTDomeController.LONG_DURATION
@@ -1050,9 +1003,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                     {"target": "vmax", "setting": [lwscs_vmax]},
                 ],
             }
-            await self.write(
-                command=mtdomecom.CommandName.CONFIG, parameters=parameters
-            )
+            await self.write(command=mtdomecom.CommandName.CONFIG, parameters=parameters)
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.data["timeout"] == mtdomecom.MockMTDomeController.LONG_DURATION
@@ -1077,9 +1028,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             )
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
-            assert self.data["timeout"] == pytest.approx(
-                self.mock_ctrl.amcs.end_tai - _CURRENT_TAI
-            )
+            assert self.data["timeout"] == pytest.approx(self.mock_ctrl.amcs.end_tai - _CURRENT_TAI)
 
             # Give some time to the mock device to move.
             wait_time = 0.2
@@ -1125,16 +1074,14 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
             assert (
-                thcs_status["driveTemperature"]
-                == [temperature] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
+                thcs_status["driveTemperature"] == [temperature] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
             )
             assert (
                 thcs_status["motorCoilTemperature"]
                 == [temperature] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
             )
             assert (
-                thcs_status["cabinetTemperature"]
-                == [temperature] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
+                thcs_status["cabinetTemperature"] == [temperature] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
             )
 
     async def test_inflate(self) -> None:
@@ -1143,9 +1090,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_AMCS, parameters={})
             self.data = await self.read()
             amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
-            assert (
-                amcs_status["status"][mtdomecom.CommandName.INFLATE] == OnOff.OFF.value
-            )
+            assert amcs_status["status"][mtdomecom.CommandName.INFLATE] == OnOff.OFF.value
 
             # Set the TAI time in the mock controller for easier control.
             self.mock_ctrl.current_tai = _CURRENT_TAI
@@ -1165,9 +1110,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_AMCS, parameters={})
             self.data = await self.read()
             amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
-            assert (
-                amcs_status["status"][mtdomecom.CommandName.INFLATE] == OnOff.ON.value
-            )
+            assert amcs_status["status"][mtdomecom.CommandName.INFLATE] == OnOff.ON.value
 
     async def test_fans(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -1175,18 +1118,14 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_AMCS, parameters={})
             self.data = await self.read()
             amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
-            assert amcs_status["status"][mtdomecom.CommandName.FANS] == pytest.approx(
-                0.0
-            )
+            assert amcs_status["status"][mtdomecom.CommandName.FANS] == pytest.approx(0.0)
 
             # Set the TAI time in the mock controller for easier control.
             self.mock_ctrl.current_tai = _CURRENT_TAI
             # Set the mock device statuses TAI time to the mock controller time
             # for easier control.
             self.mock_ctrl.thcs.command_time_tai = self.mock_ctrl.current_tai
-            await self.write(
-                command=mtdomecom.CommandName.FANS, parameters={"speed": 75.0}
-            )
+            await self.write(command=mtdomecom.CommandName.FANS, parameters={"speed": 75.0})
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.mock_ctrl is not None
@@ -1196,9 +1135,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_AMCS, parameters={})
             self.data = await self.read()
             amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
-            assert amcs_status["status"][mtdomecom.CommandName.FANS] == pytest.approx(
-                75.0
-            )
+            assert amcs_status["status"][mtdomecom.CommandName.FANS] == pytest.approx(75.0)
 
     async def test_status(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
@@ -1208,19 +1145,14 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert amcs_status["status"]["status"] == MotionState.PARKED.name
             assert amcs_status["positionActual"] == 0
 
-            await self.validate_apscs(
-                status=MotionState.CLOSED, position_actual=[0.0, 0.0]
-            )
+            await self.validate_apscs(status=MotionState.CLOSED, position_actual=[0.0, 0.0])
 
             self.mock_ctrl.lcs.current_state[:] = MotionState.STOPPED.name
             self.mock_ctrl.lcs.target_state[:] = MotionState.STOPPED.name
             await self.write(command=mtdomecom.CommandName.STATUS_LCS, parameters={})
             self.data = await self.read()
             lcs_status = self.data[mtdomecom.LlcName.LCS.value]
-            assert (
-                lcs_status["status"]["status"]
-                == [MotionState.STOPPED.name] * mtdomecom.LCS_NUM_LOUVERS
-            )
+            assert lcs_status["status"]["status"] == [MotionState.STOPPED.name] * mtdomecom.LCS_NUM_LOUVERS
             assert lcs_status["positionActual"] == [0.0] * mtdomecom.LCS_NUM_LOUVERS
 
             await self.write(command=mtdomecom.CommandName.STATUS_LWSCS, parameters={})
@@ -1239,26 +1171,14 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             self.data = await self.read()
             thcs_status = self.data[mtdomecom.LlcName.THCS.value]
             assert thcs_status["status"]["status"] == MotionState.DISABLED.name
-            assert (
-                thcs_status["driveTemperature"]
-                == [0.0] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
-            )
-            assert (
-                thcs_status["motorCoilTemperature"]
-                == [0.0] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
-            )
-            assert (
-                thcs_status["cabinetTemperature"]
-                == [0.0] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
-            )
+            assert thcs_status["driveTemperature"] == [0.0] * mtdomecom.THCS_NUM_MOTOR_DRIVE_TEMPERATURES
+            assert thcs_status["motorCoilTemperature"] == [0.0] * mtdomecom.THCS_NUM_MOTOR_COIL_TEMPERATURES
+            assert thcs_status["cabinetTemperature"] == [0.0] * mtdomecom.THCS_NUM_CABINET_TEMPERATURES
 
             await self.write(command=mtdomecom.CommandName.STATUS_RAD, parameters={})
             self.data = await self.read()
             rad_status = self.data[mtdomecom.LlcName.RAD.value]
-            assert (
-                rad_status["status"]["status"]
-                == [MotionState.CLOSED.name] * mtdomecom.RAD_NUM_DOORS
-            )
+            assert rad_status["status"]["status"] == [MotionState.CLOSED.name] * mtdomecom.RAD_NUM_DOORS
             assert rad_status["positionActual"] == [0.0] * mtdomecom.RAD_NUM_DOORS
 
             await self.write(command=mtdomecom.CommandName.STATUS_CSCS, parameters={})
@@ -1272,35 +1192,25 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             drives_in_error = [1, 1, 0, 0, 0]
             expected_drive_error_state = [True, True, False, False, False]
             await self.mock_ctrl.amcs.set_fault(0.0, drives_in_error=drives_in_error)
-            assert (
-                self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
-            )
+            assert self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
 
             expected_drive_error_state = [False, True, False, False, False]
             reset = [1, 0, 0, 0, 0]
             await self.mock_ctrl.reset_drives_az(reset=reset)
-            assert (
-                self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
-            )
+            assert self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
 
             expected_drive_error_state = [False, False, False, False, False]
             reset = [1, 1, 0, 0, 0]
             await self.mock_ctrl.reset_drives_az(reset=reset)
-            assert (
-                self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
-            )
+            assert self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
 
     async def test_shutter_reset_drives(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
-
             drives_in_error = [0, 1, 0, 1]
             expected_drive_error_state = [False, True]
             await self.mock_ctrl.apscs.set_fault(_CURRENT_TAI, drives_in_error)
             for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
-                assert (
-                    self.mock_ctrl.apscs.drives_in_error_state[i]
-                    == expected_drive_error_state
-                )
+                assert self.mock_ctrl.apscs.drives_in_error_state[i] == expected_drive_error_state
 
     async def test_az_exit_fault_and_reset_drives(self) -> None:
         """Test recovering AZ from an ERROR state."""
@@ -1324,9 +1234,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             expected_drive_error_state = [True, True, False, False, False]
             current_tai = self.mock_ctrl.current_tai + 0.1
             await self.mock_ctrl.amcs.set_fault(current_tai, drives_in_error)
-            assert (
-                self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
-            )
+            assert self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
             await self.verify_amcs_move(0.5, MotionState.ERROR, math.radians(2.40))
 
             # Now call exit_fault. This will fail because there still are
@@ -1339,16 +1247,12 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             expected_drive_error_state = [False, False, False, False, False]
             reset = [1, 1, 0, 0, 0]
             await self.mock_ctrl.reset_drives_az(reset=reset)
-            assert (
-                self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
-            )
+            assert self.mock_ctrl.amcs.drives_in_error_state == expected_drive_error_state
 
             # Now call exit_fault which will not fail because the drives have
             # been reset.
             await self.mock_ctrl.exit_fault_az()
-            await self.verify_amcs_move(
-                0.0, mtdomecom.InternalMotionState.STATIONARY, math.radians(2.40)
-            )
+            await self.verify_amcs_move(0.0, mtdomecom.InternalMotionState.STATIONARY, math.radians(2.40))
 
     async def test_shutter_exit_fault_and_reset_drives(self) -> None:
         """Test recovering the Aperture Shutter from an ERROR state."""
@@ -1358,17 +1262,12 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             expected_drive_error_state = [False, True]
             await self.mock_ctrl.apscs.set_fault(_CURRENT_TAI, drives_in_error)
             for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
-                assert (
-                    self.mock_ctrl.apscs.drives_in_error_state[i]
-                    == expected_drive_error_state
-                )
+                assert self.mock_ctrl.apscs.drives_in_error_state[i] == expected_drive_error_state
             await self.validate_apscs(status=MotionState.ERROR)
 
             # Now call exit_fault. This will fail because there still are
             # drives at fault.
-            await self.write(
-                command=mtdomecom.CommandName.EXIT_FAULT_SHUTTER, parameters={}
-            )
+            await self.write(command=mtdomecom.CommandName.EXIT_FAULT_SHUTTER, parameters={})
             self.data = await self.read()
             assert self.data["response"] == mtdomecom.ResponseCode.INCORRECT_PARAMETERS
             assert self.data["timeout"] == -1
@@ -1377,10 +1276,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             reset = [0, 1, 0, 1]
             await self.mock_ctrl.reset_drives_shutter(reset=reset)
             for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
-                assert (
-                    self.mock_ctrl.apscs.drives_in_error_state[i]
-                    == expected_drive_error_state
-                )
+                assert self.mock_ctrl.apscs.drives_in_error_state[i] == expected_drive_error_state
 
             # Now call exit_fault which will not fail because the drives have
             # been reset.
@@ -1428,9 +1324,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
 
     async def test_home(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
-            initial_position_actual = np.full(
-                mtdomecom.APSCS_NUM_SHUTTERS, 0.0, dtype=float
-            )
+            initial_position_actual = np.full(mtdomecom.APSCS_NUM_SHUTTERS, 0.0, dtype=float)
             self.mock_ctrl.apscs.position_actual = initial_position_actual
             await self.validate_apscs(
                 position_actual=initial_position_actual.tolist(),
@@ -1444,9 +1338,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert self.data["response"] == mtdomecom.ResponseCode.OK
             assert self.data["timeout"] == pytest.approx(0.0)
             await self.validate_apscs(
-                position_actual=np.zeros(
-                    mtdomecom.APSCS_NUM_SHUTTERS, dtype=float
-                ).tolist(),
+                position_actual=np.zeros(mtdomecom.APSCS_NUM_SHUTTERS, dtype=float).tolist(),
             )
 
     async def test_invalid_command_id(self) -> None:
@@ -1501,10 +1393,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
                 await self.write(command=cmd, parameters={})
                 self.data = await self.read()
                 assert mtdomecom.LlcName.APSCS.value not in self.data
-                assert (
-                    self.data["response"]
-                    == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED.value
-                )
+                assert self.data["response"] == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED.value
 
     async def test_timeout_error(self) -> None:
         self.timeout_error = True

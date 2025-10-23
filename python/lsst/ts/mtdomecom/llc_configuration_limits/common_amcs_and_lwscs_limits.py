@@ -35,9 +35,7 @@ class CommonAmcsAndLwscsLimits(AbstractLimits):
     """
 
     @abstractmethod
-    def validate(
-        self, configuration_parameters: MaxValuesConfigType
-    ) -> list[dict[str, typing.Any]]:
+    def validate(self, configuration_parameters: MaxValuesConfigType) -> list[dict[str, typing.Any]]:
         pass
 
     def validate_common_parameters(
@@ -91,29 +89,22 @@ class CommonAmcsAndLwscsLimits(AbstractLimits):
                 else:
                     # If the value is larger than the limit, raise a ValueError
                     raise ValueError(
-                        f"The value {key} for {setting} is larger than the "
-                        f"limit {common_limits[key]}."
+                        f"The value {key} for {setting} is larger than the limit {common_limits[key]}."
                     )
-            converted_configuration_parameters.append(
-                {"target": key, "setting": converted_value}
-            )
+            converted_configuration_parameters.append({"target": key, "setting": converted_value})
 
         # Check if any key is missing
         unchecked_keys = common_limits.keys() - validated_keys
         if unchecked_keys:
             # If yes then raise a KeyError because all parameters need to be
             # present.
-            raise KeyError(
-                f"The set of configuration parameters is missing these {unchecked_keys}"
-            )
+            raise KeyError(f"The set of configuration parameters is missing these {unchecked_keys}")
 
         # Check if any unknown configuration parameters remain.
         extra_keys = validated_keys - common_limits.keys()
         if extra_keys:
             # If yes then raise a KeyError.
-            raise KeyError(
-                f"Found these unknown configuration parameters: {extra_keys}."
-            )
+            raise KeyError(f"Found these unknown configuration parameters: {extra_keys}.")
 
         # All configuration values fall within their limits and no unknown
         # configuration parameters were found so we can return the converted

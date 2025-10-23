@@ -35,7 +35,5 @@ class AbstractLimits(ABC):
     """
 
     @abstractmethod
-    def validate(
-        self, configuration_parameters: MaxValuesConfigType
-    ) -> list[dict[str, typing.Any]]:
+    def validate(self, configuration_parameters: MaxValuesConfigType) -> list[dict[str, typing.Any]]:
         pass

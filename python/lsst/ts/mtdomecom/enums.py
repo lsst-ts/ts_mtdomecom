@@ -64,9 +64,7 @@ class InternalMotionState(enum.IntEnum):
 
 # Dict holding translations from motion states, that the lower level
 # controllers can have, to MotionState.
-motion_state_translations = {
-    InternalMotionState.STATIONARY.name: MotionState.STOPPED_BRAKED
-}
+motion_state_translations = {InternalMotionState.STATIONARY.name: MotionState.STOPPED_BRAKED}
 
 
 class CommandName(enum.StrEnum):

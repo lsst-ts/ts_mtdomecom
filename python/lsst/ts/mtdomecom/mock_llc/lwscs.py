@@ -56,9 +56,7 @@ def get_distance(start_position: float, end_position: float) -> float:
     distance: `float`
         The smallest distance [rad] between the initial and target positions.
     """
-    distance = utils.angle_diff(
-        math.degrees(end_position), math.degrees(start_position)
-    ).rad
+    distance = utils.angle_diff(math.degrees(end_position), math.degrees(start_position)).rad
     return distance
 
 
@@ -172,9 +170,7 @@ class LwscsStatus(BaseMockStatus):
             else:
                 self.current_state = MotionState.MOVING.name
 
-        self.position_actual = utils.angle_wrap_nonnegative(
-            math.degrees(self.position_actual)
-        ).rad
+        self.position_actual = utils.angle_wrap_nonnegative(math.degrees(self.position_actual)).rad
 
     async def _handle_past_end_tai(self, current_tai: float) -> None:
         if self.target_state in [
@@ -190,9 +186,7 @@ class LwscsStatus(BaseMockStatus):
             self.velocity_actual = 0.0
         else:
             diff_since_crawl_started = current_tai - self.end_tai
-            self.position_actual = (
-                self.start_position + self.crawl_velocity * diff_since_crawl_started
-            )
+            self.position_actual = self.start_position + self.crawl_velocity * diff_since_crawl_started
             self.current_state = MotionState.CRAWLING.name
             self.velocity_actual = self.crawl_velocity
             if self.position_actual >= LWSCS_MAX_POSITION:
@@ -228,9 +222,7 @@ class LwscsStatus(BaseMockStatus):
         # fixed current values are assumed while in reality they vary depending
         # on the speed and the inclination of the light wind screen.
         if self.current_state in [MotionState.CRAWLING.name, MotionState.MOVING.name]:
-            self.drive_current_actual = np.full(
-                LWSCS_NUM_MOTORS, LWSCS_CURRENT_PER_MOTOR, dtype=float
-            )
+            self.drive_current_actual = np.full(LWSCS_NUM_MOTORS, LWSCS_CURRENT_PER_MOTOR, dtype=float)
             self.power_draw = LWS_POWER_DRAW
         else:
             self.drive_current_actual = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
@@ -286,9 +278,7 @@ class LwscsStatus(BaseMockStatus):
         self.start_position = self.position_actual
         self.crawl_velocity = 0.0
         self.start_tai = start_tai
-        duration = get_duration(
-            self.position_actual, self.position_commanded, self.vmax
-        )
+        duration = get_duration(self.position_actual, self.position_commanded, self.vmax)
         self.end_tai = start_tai + duration
         self.target_state = MotionState.MOVING.name
         return duration

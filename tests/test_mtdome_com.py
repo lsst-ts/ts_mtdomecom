@@ -71,15 +71,11 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         async with self.create_mtdomecom():
             exp_position = 329.0
             exp_velocity = 0.5
-            await self.mtdomecom_com.move_az(
-                position=exp_position, velocity=exp_velocity
-            )
+            await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
             assert math.isclose(
                 self.mtdomecom_com.mock_ctrl.amcs.position_commanded,
                 math.radians(
-                    utils.angle_wrap_nonnegative(
-                        exp_position + mtdomecom.DOME_AZIMUTH_OFFSET
-                    ).degree
+                    utils.angle_wrap_nonnegative(exp_position + mtdomecom.DOME_AZIMUTH_OFFSET).degree
                 ),
             )
             assert math.isclose(
@@ -98,44 +94,20 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_stop_az(self) -> None:
         async with self.create_mtdomecom():
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.start_state
-                != MotionState.GO_STATIONARY.name
-            )
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.target_state
-                != MotionState.STOPPED.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.start_state != MotionState.GO_STATIONARY.name
+            assert self.mtdomecom_com.mock_ctrl.amcs.target_state != MotionState.STOPPED.name
             await self.mtdomecom_com.stop_az(engage_brakes=False)
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.start_state
-                != MotionState.GO_STATIONARY.name
-            )
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.target_state
-                == MotionState.STOPPED.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.start_state != MotionState.GO_STATIONARY.name
+            assert self.mtdomecom_com.mock_ctrl.amcs.target_state == MotionState.STOPPED.name
             await self.mtdomecom_com.stop_az(engage_brakes=True)
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.start_state
-                == MotionState.GO_STATIONARY.name
-            )
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.target_state
-                == MotionState.STOPPED.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.start_state == MotionState.GO_STATIONARY.name
+            assert self.mtdomecom_com.mock_ctrl.amcs.target_state == MotionState.STOPPED.name
 
     async def test_stop_el(self) -> None:
         async with self.create_mtdomecom():
-            assert (
-                self.mtdomecom_com.mock_ctrl.lwscs.target_state
-                != MotionState.STOPPED.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.lwscs.target_state != MotionState.STOPPED.name
             await self.mtdomecom_com.stop_el(engage_brakes=False)
-            assert (
-                self.mtdomecom_com.mock_ctrl.lwscs.target_state
-                == MotionState.STOPPED.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.lwscs.target_state == MotionState.STOPPED.name
             await self.mtdomecom_com.stop_el(engage_brakes=True)
             assert (
                 self.mtdomecom_com.mock_ctrl.lwscs.target_state
@@ -145,16 +117,10 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_stop_louvers(self) -> None:
         async with self.create_mtdomecom():
             for i in range(mtdomecom.LCS_NUM_LOUVERS):
-                assert (
-                    self.mtdomecom_com.mock_ctrl.lcs.target_state[i]
-                    != MotionState.STOPPED.name
-                )
+                assert self.mtdomecom_com.mock_ctrl.lcs.target_state[i] != MotionState.STOPPED.name
             await self.mtdomecom_com.stop_louvers(engage_brakes=False)
             for i in range(mtdomecom.LCS_NUM_LOUVERS):
-                assert (
-                    self.mtdomecom_com.mock_ctrl.lcs.target_state[i]
-                    == MotionState.STOPPED.name
-                )
+                assert self.mtdomecom_com.mock_ctrl.lcs.target_state[i] == MotionState.STOPPED.name
             await self.mtdomecom_com.stop_louvers(engage_brakes=True)
             for i in range(mtdomecom.LCS_NUM_LOUVERS):
                 assert (
@@ -190,9 +156,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                     exp_position[i],
                 )
             for i in range(mtdomecom.LCS_NUM_LOUVERS - 2):
-                assert math.isclose(
-                    self.mtdomecom_com.mock_ctrl.lcs.position_commanded[i + 2], 0.0
-                )
+                assert math.isclose(self.mtdomecom_com.mock_ctrl.lcs.position_commanded[i + 2], 0.0)
 
     async def test_close_louvers(self) -> None:
         async with self.create_mtdomecom():
@@ -206,10 +170,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 )
             await self.mtdomecom_com.close_louvers()
             for i in range(2):
-                assert (
-                    self.mtdomecom_com.mock_ctrl.lcs.start_state[i]
-                    == MotionState.CLOSING.name
-                )
+                assert self.mtdomecom_com.mock_ctrl.lcs.start_state[i] == MotionState.CLOSING.name
             for i in range(mtdomecom.LCS_NUM_LOUVERS - 2):
                 assert (
                     self.mtdomecom_com.mock_ctrl.lcs.start_state[i + 2]
@@ -219,10 +180,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_open_shutter(self) -> None:
         async with self.create_mtdomecom():
             for i in range(mtdomecom.APSCS_NUM_SHUTTERS):
-                assert (
-                    self.mtdomecom_com.mock_ctrl.apscs.target_state[i]
-                    == MotionState.CLOSED.name
-                )
+                assert self.mtdomecom_com.mock_ctrl.apscs.target_state[i] == MotionState.CLOSED.name
             await self.mtdomecom_com.open_shutter()
             assert (
                 self.mtdomecom_com.mock_ctrl.apscs.target_state
@@ -231,9 +189,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_close_shutter(self) -> None:
         async with self.create_mtdomecom():
-            self.mtdomecom_com.mock_ctrl.apscs.position_actual = [
-                100.0
-            ] * mtdomecom.APSCS_NUM_SHUTTERS
+            self.mtdomecom_com.mock_ctrl.apscs.position_actual = [100.0] * mtdomecom.APSCS_NUM_SHUTTERS
             await self.mtdomecom_com.close_shutter()
             assert (
                 self.mtdomecom_com.mock_ctrl.apscs.target_state
@@ -242,24 +198,15 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_park(self) -> None:
         async with self.create_mtdomecom():
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.start_state == MotionState.PARKED.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.start_state == MotionState.PARKED.name
             await self.mtdomecom_com.park()
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.start_state
-                == MotionState.PARKING.name
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.start_state == MotionState.PARKING.name
 
     async def test_set_temperature(self) -> None:
         async with self.create_mtdomecom():
-            assert math.isclose(
-                self.mtdomecom_com.mock_ctrl.thcs.drive_temperature[0], 0.0
-            )
+            assert math.isclose(self.mtdomecom_com.mock_ctrl.thcs.drive_temperature[0], 0.0)
             await self.mtdomecom_com.set_temperature(10.0)
-            assert math.isclose(
-                self.mtdomecom_com.mock_ctrl.thcs.drive_temperature[0], 10.0
-            )
+            assert math.isclose(self.mtdomecom_com.mock_ctrl.thcs.drive_temperature[0], 10.0)
 
     async def test_exit_fault(self) -> None:
         async with self.create_mtdomecom():
@@ -274,17 +221,11 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_set_operational_mode(self) -> None:
         async with self.create_mtdomecom():
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.operational_mode
-                == OperationalMode.NORMAL
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.operational_mode == OperationalMode.NORMAL
             await self.mtdomecom_com.set_operational_mode(
                 OperationalMode.DEGRADED, sub_system_ids=SubSystemId.AMCS
             )
-            assert (
-                self.mtdomecom_com.mock_ctrl.amcs.operational_mode
-                == OperationalMode.DEGRADED
-            )
+            assert self.mtdomecom_com.mock_ctrl.amcs.operational_mode == OperationalMode.DEGRADED
 
     async def test_reset_drives_az(self) -> None:
         async with self.create_mtdomecom():
@@ -306,9 +247,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_home(self) -> None:
         async with self.create_mtdomecom():
-            self.mtdomecom_com.mock_ctrl.apscs.position_actual = [
-                100.0
-            ] * mtdomecom.APSCS_NUM_SHUTTERS
+            self.mtdomecom_com.mock_ctrl.apscs.position_actual = [100.0] * mtdomecom.APSCS_NUM_SHUTTERS
             await self.mtdomecom_com.home(
                 sub_system_ids=SubSystemId.APSCS,
                 direction=[OpenClose.CLOSE, OpenClose.CLOSE],
@@ -331,9 +270,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 {"target": "vmax", "setting": [1.0]},
             ]
             await self.mtdomecom_com.config_llcs(system, settings)
-            assert math.isclose(
-                self.mtdomecom_com.mock_ctrl.amcs.jmax, math.radians(1.0)
-            )
+            assert math.isclose(self.mtdomecom_com.mock_ctrl.amcs.jmax, math.radians(1.0))
 
     async def test_fans(self) -> None:
         async with self.create_mtdomecom():
@@ -349,17 +286,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_set_power_management_mode(self) -> None:
         async with self.create_mtdomecom():
-            assert (
-                self.mtdomecom_com.power_management_mode
-                == PowerManagementMode.NO_POWER_MANAGEMENT
-            )
-            await self.mtdomecom_com.set_power_management_mode(
-                PowerManagementMode.EMERGENCY
-            )
-            assert (
-                self.mtdomecom_com.power_management_mode
-                == PowerManagementMode.EMERGENCY
-            )
+            assert self.mtdomecom_com.power_management_mode == PowerManagementMode.NO_POWER_MANAGEMENT
+            await self.mtdomecom_com.set_power_management_mode(PowerManagementMode.EMERGENCY)
+            assert self.mtdomecom_com.power_management_mode == PowerManagementMode.EMERGENCY
 
     async def test_all_periodic_tasks(self) -> None:
         async with self.create_mtdomecom():
@@ -383,19 +312,13 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             )
             await self.mtdomecom_com.connect()
             # OBC statuses are not reported yet.
-            while (
-                len(self.mtdomecom_com.lower_level_status) < len(mtdomecom.LlcName) - 1
-            ):
+            while len(self.mtdomecom_com.lower_level_status) < len(mtdomecom.LlcName) - 1:
                 await asyncio.sleep(0.1)
-            assert (
-                len(self.mtdomecom_com.lower_level_status) == len(mtdomecom.LlcName) - 1
-            )
+            assert len(self.mtdomecom_com.lower_level_status) == len(mtdomecom.LlcName) - 1
 
     async def test_request_llc_status(self) -> None:
         async with self.create_mtdomecom():
-            self.mtdomecom_com.telemetry_callbacks = {
-                mtdomecom.LlcName.AMCS: self.handle_llc_status
-            }
+            self.mtdomecom_com.telemetry_callbacks = {mtdomecom.LlcName.AMCS: self.handle_llc_status}
             await self.mtdomecom_com.request_llc_status(mtdomecom.LlcName.AMCS)
             assert self.llc_status is not None
             assert (
@@ -428,63 +351,34 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             )
 
             await self.mtdomecom_com.connect()
-            assert len(self.mtdomecom_com.telemetry_callbacks) == len(
-                telemetry_callbacks
-            )
+            assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
 
             await self.mtdomecom_com.status_amcs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
 
             await self.mtdomecom_com.status_apscs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.APSCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.APSCS]
 
             await self.mtdomecom_com.status_cbcs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CBCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CBCS]
 
             await self.mtdomecom_com.status_cscs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CSCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.CSCS]
 
             await self.mtdomecom_com.status_lcs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LCS]
 
             await self.mtdomecom_com.status_lwscs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LWSCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.LWSCS]
 
             await self.mtdomecom_com.status_moncs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.MONCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.MONCS]
 
             await self.mtdomecom_com.status_rad()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.RAD]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.RAD]
 
             await self.mtdomecom_com.status_thcs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.THCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.THCS]
 
     async def test_communication_error(self) -> None:
         async with self.create_mtdomecom():
@@ -510,16 +404,11 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             )
 
             await self.mtdomecom_com.connect()
-            assert len(self.mtdomecom_com.telemetry_callbacks) == len(
-                telemetry_callbacks
-            )
+            assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
 
             # Not on the rotating part so should work.
             await self.mtdomecom_com.status_amcs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
 
             # On the rotating part so should not work.
             await self.mtdomecom_com.status_apscs()
@@ -528,10 +417,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             assert "exception" in self.llc_status
             assert "response_code" in self.llc_status
             assert self.llc_status["command_name"] == mtdomecom.CommandName.STATUS_APSCS
-            assert (
-                self.llc_status["response_code"]
-                == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED
-            )
+            assert self.llc_status["response_code"] == mtdomecom.ResponseCode.ROTATING_PART_NOT_RECEIVED
 
             with pytest.raises(ValueError) as ve:
                 await self.mtdomecom_com.open_shutter()
@@ -550,16 +436,11 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             )
 
             await self.mtdomecom_com.connect()
-            assert len(self.mtdomecom_com.telemetry_callbacks) == len(
-                telemetry_callbacks
-            )
+            assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
 
             # No communication error so should work.
             await self.mtdomecom_com.status_amcs()
-            assert (
-                self.llc_status
-                == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
-            )
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
 
             await self.mtdomecom_com.mock_ctrl.close()
 
@@ -592,9 +473,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
             await self.mtdomecom_com.connect()
             self.mtdomecom_com.mock_ctrl.timeout_error = True
-            assert len(self.mtdomecom_com.telemetry_callbacks) == len(
-                telemetry_callbacks
-            )
+            assert len(self.mtdomecom_com.telemetry_callbacks) == len(telemetry_callbacks)
 
             await self.mtdomecom_com.status_amcs()
             assert "exception" in self.llc_status

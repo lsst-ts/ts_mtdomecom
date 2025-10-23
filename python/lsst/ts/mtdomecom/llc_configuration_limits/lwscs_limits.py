@@ -48,9 +48,7 @@ class LwscsLimits(CommonAmcsAndLwscsLimits):
         self.amax = LWSCS_AMAX
         self.vmax = LWSCS_VMAX
 
-    def validate(
-        self, configuration_parameters: MaxValuesConfigType
-    ) -> list[dict[str, typing.Any]]:
+    def validate(self, configuration_parameters: MaxValuesConfigType) -> list[dict[str, typing.Any]]:
         """Validate the data are against the configuration limits of the lower
         level component.
 

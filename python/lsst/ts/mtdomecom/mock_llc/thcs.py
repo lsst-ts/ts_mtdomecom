@@ -43,12 +43,8 @@ class ThcsStatus(BaseMockStatus):
         super().__init__()
         self.log = logging.getLogger("MockThcsStatus")
         self.messages = [{"code": 0, "description": "No Errors"}]
-        self.drive_temperature = np.zeros(
-            THCS_NUM_MOTOR_DRIVE_TEMPERATURES, dtype=float
-        )
-        self.motor_coil_temperature = np.zeros(
-            THCS_NUM_MOTOR_COIL_TEMPERATURES, dtype=float
-        )
+        self.drive_temperature = np.zeros(THCS_NUM_MOTOR_DRIVE_TEMPERATURES, dtype=float)
+        self.motor_coil_temperature = np.zeros(THCS_NUM_MOTOR_COIL_TEMPERATURES, dtype=float)
         self.cabinet_temperature = np.zeros(THCS_NUM_CABINET_TEMPERATURES, dtype=float)
         self.current_state = MotionState.DISABLED.name
         self.target_state = MotionState.DISABLED.name

@@ -26,19 +26,11 @@ from dataclasses import dataclass
 from lsst.ts import mtdomecom
 from lsst.ts.xml.enums.MTDome import OnOff, PowerManagementMode
 
-CLOSE_SHUTTER = mtdomecom.ScheduledCommand(
-    command=mtdomecom.CommandName.CLOSE_SHUTTER, params={}
-)
-FANS_ON = mtdomecom.ScheduledCommand(
-    command=mtdomecom.CommandName.FANS, params={"action": OnOff.ON}
-)
-OPEN_SHUTTER = mtdomecom.ScheduledCommand(
-    command=mtdomecom.CommandName.OPEN_SHUTTER, params={}
-)
+CLOSE_SHUTTER = mtdomecom.ScheduledCommand(command=mtdomecom.CommandName.CLOSE_SHUTTER, params={})
+FANS_ON = mtdomecom.ScheduledCommand(command=mtdomecom.CommandName.FANS, params={"action": OnOff.ON})
+OPEN_SHUTTER = mtdomecom.ScheduledCommand(command=mtdomecom.CommandName.OPEN_SHUTTER, params={})
 STOP_EL = mtdomecom.ScheduledCommand(command=mtdomecom.CommandName.STOP_EL, params={})
-STOP_LOUVERS = mtdomecom.ScheduledCommand(
-    command=mtdomecom.CommandName.STOP_LOUVERS, params={}
-)
+STOP_LOUVERS = mtdomecom.ScheduledCommand(command=mtdomecom.CommandName.STOP_LOUVERS, params={})
 
 
 @dataclass
@@ -198,9 +190,7 @@ class PowerManagementHandlerTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def test_schedule_command(self) -> None:
         assert self.pmh.command_queue.empty()
-        command_to_scedule = mtdomecom.ScheduledCommand(
-            command=mtdomecom.CommandName.OPEN_SHUTTER, params={}
-        )
+        command_to_scedule = mtdomecom.ScheduledCommand(command=mtdomecom.CommandName.OPEN_SHUTTER, params={})
         await self.pmh.schedule_command(command_to_scedule)
         assert self.pmh.command_queue.qsize() == 1
         _, scheduled_command = await self.pmh.command_queue.get()
