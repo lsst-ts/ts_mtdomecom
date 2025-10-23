@@ -231,9 +231,7 @@ class MTDomeCom:
         log: logging.Logger,
         config: SimpleNamespace,
         simulation_mode: ValidSimulationMode = ValidSimulationMode.NORMAL_OPERATIONS,
-        telemetry_callbacks: (
-            dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None
-        ) = None,
+        telemetry_callbacks: (dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None) = None,
         start_periodic_tasks: bool = True,
         communication_error: bool = False,
         timeout_error: bool = False,
@@ -305,9 +303,7 @@ class MTDomeCom:
         # lower level component.
         self.operational_mode_command_dict = ALL_OPERATIONAL_MODE_COMMANDS
         if self.simulation_mode == ValidSimulationMode.NORMAL_OPERATIONS:
-            self.operational_mode_command_dict = (
-                OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING
-            )
+            self.operational_mode_command_dict = OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING
 
         # Keep track of which command to send the home command on a lower level
         # component.
@@ -322,9 +318,7 @@ class MTDomeCom:
 
         # Power management attributes.
         self.power_management_mode = PowerManagementMode.NO_POWER_MANAGEMENT
-        self.power_management_handler = PowerManagementHandler(
-            self.log, command_priorities
-        )
+        self.power_management_handler = PowerManagementHandler(self.log, command_priorities)
 
         self.log.info("MTDomeCom constructed.")
 
@@ -349,10 +343,7 @@ class MTDomeCom:
             assert self.mock_ctrl is not None
             host = self.mock_ctrl.host
             port = self.mock_ctrl.port
-        elif (
-            self.simulation_mode
-            == ValidSimulationMode.SIMULATION_WITHOUT_MOCK_CONTROLLER
-        ):
+        elif self.simulation_mode == ValidSimulationMode.SIMULATION_WITHOUT_MOCK_CONTROLLER:
             host = tcpip.DEFAULT_LOCALHOST
             port = self.config.port
         else:
@@ -360,9 +351,7 @@ class MTDomeCom:
             port = self.config.port
 
         self.log.info(f"Connecting to host={host} and port={port}.")
-        self.client = tcpip.Client(
-            host=host, port=port, log=self.log, name="MTDomeClient"
-        )
+        self.client = tcpip.Client(host=host, port=port, log=self.log, name="MTDomeClient")
         await asyncio.wait_for(fut=self.client.start_task, timeout=_TIMEOUT)
 
         if self.start_periodic_tasks:
@@ -372,9 +361,7 @@ class MTDomeCom:
         for louver in Louver:
             if louver in LOUVERS_ENABLED:
                 louver_states.append(f"{louver.name} (index {louver.value + 1})")
-        louvers_message = (
-            "Louvers currently enabled: [" + ", ".join(louver_states) + "]"
-        )
+        louvers_message = "Louvers currently enabled: [" + ", ".join(louver_states) + "]"
         self.log.info(louvers_message)
 
         self.log.info("connected")
@@ -422,18 +409,14 @@ class MTDomeCom:
 
         self.periodic_tasks.append(
             asyncio.create_task(
-                self.one_periodic_task(
-                    self.check_all_commands_have_replies, COMMANDS_REPLIED_PERIOD
-                ),
+                self.one_periodic_task(self.check_all_commands_have_replies, COMMANDS_REPLIED_PERIOD),
                 name="check_all_commands_have_replies",
             )
         )
 
         self.periodic_tasks.append(
             asyncio.create_task(
-                self.one_periodic_task(
-                    self.process_command_queue, _COMMAND_QUEUE_PERIOD
-                ),
+                self.one_periodic_task(self.process_command_queue, _COMMAND_QUEUE_PERIOD),
                 name="process_command_queue",
             )
         )
@@ -458,9 +441,7 @@ class MTDomeCom:
                 try:
                     await self._status_methods[llc_name]()
                 except Exception:
-                    self.log.exception(
-                        f"Failed to get the status for {llc_name}. Ignoring."
-                    )
+                    self.log.exception(f"Failed to get the status for {llc_name}. Ignoring.")
 
     async def one_periodic_task(
         self,
@@ -527,10 +508,7 @@ class MTDomeCom:
         The simulation mode must be 1.
         """
         self.log.info("start_mock_ctrl.")
-        assert (
-            self.simulation_mode
-            == ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER.value
-        )
+        assert self.simulation_mode == ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER.value
         self.mock_ctrl = MockMTDomeController(
             port=0,
             log=self.log,
@@ -601,20 +579,14 @@ class MTDomeCom:
         current_power_draw = await self._get_current_power_draw_for_llcs()
         total_current_power_draw = sum([p for k, p in current_power_draw.items()])
         power_available = (
-            CONTINUOUS_SLIP_RING_POWER_CAPACITY
-            - CONTINUOUS_ELECTRONICS_POWER_DRAW
-            - total_current_power_draw
+            CONTINUOUS_SLIP_RING_POWER_CAPACITY - CONTINUOUS_ELECTRONICS_POWER_DRAW - total_current_power_draw
         )
         self.log.debug(f"{current_power_draw=}, {power_available=}")
 
-        scheduled_command = await self.power_management_handler.get_next_command(
-            current_power_draw
-        )
+        scheduled_command = await self.power_management_handler.get_next_command(current_power_draw)
         if scheduled_command is not None:
             await self.update_status_of_non_status_command(True)
-            await self.write_then_read_reply(
-                command=scheduled_command.command, **scheduled_command.params
-            )
+            await self.write_then_read_reply(command=scheduled_command.command, **scheduled_command.params)
 
     async def _get_current_power_draw_for_llcs(self) -> dict[str, float]:
         """Determine the current power draw for each subsystem based on the
@@ -677,9 +649,7 @@ class MTDomeCom:
             If waiting for a command reply takes longer than _TIMEOUT seconds.
         """
         command_id = next(self._index_iter)
-        self.commands_without_reply[command_id] = CommandTime(
-            command=command, tai=utils.current_tai()
-        )
+        self.commands_without_reply[command_id] = CommandTime(command=command, tai=utils.current_tai())
         command_name = command.value
         command_dict = {
             "commandId": command_id,
@@ -693,9 +663,7 @@ class MTDomeCom:
                     await self.update_status_of_non_status_command(False)
 
             if self.client is None:
-                raise RuntimeError(
-                    f"Error writing command {command_dict}: self.client == None."
-                )
+                raise RuntimeError(f"Error writing command {command_dict}: self.client == None.")
 
             disabled_commands: set[CommandName] = set()
             if self.simulation_mode == ValidSimulationMode.NORMAL_OPERATIONS:
@@ -716,9 +684,7 @@ class MTDomeCom:
                     raise exc
                 except asyncio.CancelledError:
                     # Ignore task cancellation.
-                    self.log.warning(
-                        f"Waiting for reply to {command_name} was cancelled."
-                    )
+                    self.log.warning(f"Waiting for reply to {command_name} was cancelled.")
                     data = REPLY_DATA_FOR_DISABLED_COMMANDS
                 self.log.debug(f"Received {command_name=}, {data=}.")
 
@@ -729,9 +695,7 @@ class MTDomeCom:
                     if received_command_id in self.commands_without_reply:
                         self.commands_without_reply.pop(received_command_id)
                     else:
-                        self.log.warning(
-                            f"Ignoring unknown commandId {received_command_id}."
-                        )
+                        self.log.warning(f"Ignoring unknown commandId {received_command_id}.")
             else:
                 data = REPLY_DATA_FOR_DISABLED_COMMANDS
             response = data["response"]
@@ -789,9 +753,7 @@ class MTDomeCom:
         """
         self.log.debug(f"move_az: {position=!s}, {velocity=!s}")
         # Compensate for the dome azimuth offset.
-        dome_position = utils.angle_wrap_nonnegative(
-            position + DOME_AZIMUTH_OFFSET
-        ).degree
+        dome_position = utils.angle_wrap_nonnegative(position + DOME_AZIMUTH_OFFSET).degree
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(
             command=CommandName.MOVE_AZ,
@@ -901,8 +863,7 @@ class MTDomeCom:
                     await func(engage_brakes)
                 else:
                     self.log.warning(
-                        f"Subsystem {SubSystemId(sub_system_id).name} doesn't have a "
-                        "stop function. Ignoring."
+                        f"Subsystem {SubSystemId(sub_system_id).name} doesn't have a stop function. Ignoring."
                     )
 
     async def crawl_az(self, velocity: float) -> None:
@@ -920,9 +881,7 @@ class MTDomeCom:
         """
         self.log.debug(f"crawl_az: {velocity=!s}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.CRAWL_AZ, velocity=math.radians(velocity)
-        )
+        await self.write_then_read_reply(command=CommandName.CRAWL_AZ, velocity=math.radians(velocity))
 
     async def crawl_el(self, velocity: float) -> None:
         """Crawl El.
@@ -959,23 +918,17 @@ class MTDomeCom:
     async def close_louvers(self) -> None:
         """Close all louvers."""
         self.log.debug("close_louvers")
-        await self._schedule_command_if_power_management_active(
-            command=CommandName.CLOSE_LOUVERS
-        )
+        await self._schedule_command_if_power_management_active(command=CommandName.CLOSE_LOUVERS)
 
     async def open_shutter(self) -> None:
         """Open the shutter."""
         self.log.debug("open_shutter")
-        await self._schedule_command_if_power_management_active(
-            command=CommandName.OPEN_SHUTTER
-        )
+        await self._schedule_command_if_power_management_active(command=CommandName.OPEN_SHUTTER)
 
     async def close_shutter(self) -> None:
         """Close the shutter."""
         self.log.debug("close_shutter")
-        await self._schedule_command_if_power_management_active(
-            command=CommandName.CLOSE_SHUTTER
-        )
+        await self._schedule_command_if_power_management_active(command=CommandName.CLOSE_SHUTTER)
 
     async def park(self) -> None:
         """Park the dome."""
@@ -993,9 +946,7 @@ class MTDomeCom:
         """
         self.log.debug(f"set_temperature: {temperature=!s}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.SET_TEMPERATURE, temperature=temperature
-        )
+        await self.write_then_read_reply(command=CommandName.SET_TEMPERATURE, temperature=temperature)
 
     async def exit_fault(self, sub_system_ids: int) -> None:
         """Indicate that all hardware errors have been resolved.
@@ -1019,9 +970,7 @@ class MTDomeCom:
                     case SubSystemId.THCS:
                         await self.exit_fault_thermal()
                     case _:
-                        self.log.warning(
-                            f"Ignoring reset_drives for sub_system_id={sub_system_id.name}."
-                        )
+                        self.log.warning(f"Ignoring reset_drives for sub_system_id={sub_system_id.name}.")
 
     async def exit_fault_az(self) -> None:
         """Indicate that all AMCS hardware errors have been resolved."""
@@ -1030,9 +979,7 @@ class MTDomeCom:
         az_reset = [1] * AMCS_NUM_MOTORS
         self.log.debug(f"reset_drives_az: {az_reset=!s}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.RESET_DRIVES_AZ, reset=az_reset
-        )
+        await self.write_then_read_reply(command=CommandName.RESET_DRIVES_AZ, reset=az_reset)
         self.log.debug("exit_fault_az")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_AZ)
@@ -1097,15 +1044,10 @@ class MTDomeCom:
             if (
                 sub_system_id & sub_system_ids
                 and sub_system_id in self.operational_mode_command_dict
-                and operational_mode.name
-                in self.operational_mode_command_dict[sub_system_id]
+                and operational_mode.name in self.operational_mode_command_dict[sub_system_id]
             ):
-                self.log.debug(
-                    f"do_setOperationalMode: sub_system_id={sub_system_id.name}"
-                )
-                command = self.operational_mode_command_dict[sub_system_id][
-                    operational_mode.name
-                ]
+                self.log.debug(f"do_setOperationalMode: sub_system_id={sub_system_id.name}")
+                command = self.operational_mode_command_dict[sub_system_id][operational_mode.name]
                 await self.update_status_of_non_status_command(True)
                 await self.write_then_read_reply(command=command)
 
@@ -1122,9 +1064,7 @@ class MTDomeCom:
         """
         self.log.debug(f"reset_drives_az: {reset=}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.RESET_DRIVES_AZ, reset=reset
-        )
+        await self.write_then_read_reply(command=CommandName.RESET_DRIVES_AZ, reset=reset)
 
     async def reset_drives_shutter(self, reset: list[int]) -> None:
         """Reset one or more Aperture Shutter drives.
@@ -1139,9 +1079,7 @@ class MTDomeCom:
         """
         self.log.debug(f"reset_drives_shutter: reset={reset}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.RESET_DRIVES_SHUTTER, reset=reset
-        )
+        await self.write_then_read_reply(command=CommandName.RESET_DRIVES_SHUTTER, reset=reset)
 
     async def reset_drives_louvers(self, reset: list[int]) -> None:
         """Reset one or more Louver drives.
@@ -1156,9 +1094,7 @@ class MTDomeCom:
         """
         self.log.debug(f"reset_drives_louvers: reset={reset}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.RESET_DRIVES_LOUVERS, reset=reset
-        )
+        await self.write_then_read_reply(command=CommandName.RESET_DRIVES_LOUVERS, reset=reset)
 
     async def set_zero_az(self) -> None:
         """Take the current position of the dome as zero.
@@ -1186,14 +1122,9 @@ class MTDomeCom:
         """
         for sub_system_id in SubSystemId:
             self.log.debug(f"home: sub_system_id={sub_system_id.name}")
-            if (
-                sub_system_id & sub_system_ids
-                and sub_system_id in self.set_home_command_dict
-            ):
+            if sub_system_id & sub_system_ids and sub_system_id in self.set_home_command_dict:
                 command = self.set_home_command_dict[sub_system_id]
-                await self._schedule_command_if_power_management_active(
-                    command=command, direction=direction
-                )
+                await self._schedule_command_if_power_management_active(command=command, direction=direction)
 
     async def config_llcs(self, system: LlcName, settings: MaxValuesConfigType) -> None:
         """Config command not to be executed by SAL.
@@ -1240,9 +1171,7 @@ class MTDomeCom:
             The speed to set.
         """
         self.log.debug(f"fans: {speed=!s}")
-        await self._schedule_command_if_power_management_active(
-            command=CommandName.FANS, speed=speed
-        )
+        await self._schedule_command_if_power_management_active(command=CommandName.FANS, speed=speed)
 
     async def inflate(self, action: OnOff) -> None:
         """Inflate or deflate the inflatable seal.
@@ -1254,13 +1183,9 @@ class MTDomeCom:
         """
         self.log.debug(f"inflate: {action=!s}")
         await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.INFLATE, action=action.value
-        )
+        await self.write_then_read_reply(command=CommandName.INFLATE, action=action.value)
 
-    async def set_power_management_mode(
-        self, power_management_mode: PowerManagementMode
-    ) -> None:
+    async def set_power_management_mode(self, power_management_mode: PowerManagementMode) -> None:
         """Set the power management mode.
 
         Parameters
@@ -1272,14 +1197,10 @@ class MTDomeCom:
             self.log.warning("Will not set PowerManagementMode to NO_POWER_MANAGEMENT.")
 
         elif power_management_mode == self.power_management_mode:
-            self.log.warning(
-                "New PowerManagementMode is equal to current mode. Ignoring."
-            )
+            self.log.warning("New PowerManagementMode is equal to current mode. Ignoring.")
 
         else:
-            self.log.debug(
-                f"setPowerManagementMode: {power_management_mode}. Clearing command queue."
-            )
+            self.log.debug(f"setPowerManagementMode: {power_management_mode}. Clearing command queue.")
             while not self.power_management_handler.command_queue.empty():
                 self.power_management_handler.command_queue.get_nowait()
             self.power_management_mode = power_management_mode
@@ -1352,9 +1273,7 @@ class MTDomeCom:
                 await cb(self.communication_error_report)
                 return
 
-        pre_processed_status = await self._pre_process_status(
-            llc_name, status[llc_name]
-        )
+        pre_processed_status = await self._pre_process_status(llc_name, status[llc_name])
 
         # The timestamp is irrelevant for capacitor banks status.
         if llc_name == LlcName.CBCS and "timestamp" in pre_processed_status:
@@ -1414,9 +1333,7 @@ class MTDomeCom:
 
         return pre_processed_telemetry
 
-    async def _round_telemetry_values(
-        self, llc_name: str, telemetry: dict[str, typing.Any]
-    ) -> None:
+    async def _round_telemetry_values(self, llc_name: str, telemetry: dict[str, typing.Any]) -> None:
         """Round the values in the telemetry.
 
         Whether a value is rounded and to how many decimals is defined
@@ -1434,9 +1351,7 @@ class MTDomeCom:
             if key in keys_to_round:
                 if isinstance(telemetry[key], list):
                     # Add 0.0 to avoid -0.0 values
-                    telemetry[key] = [
-                        round(val, keys_to_round[key]) + 0.0 for val in telemetry[key]
-                    ]
+                    telemetry[key] = [round(val, keys_to_round[key]) + 0.0 for val in telemetry[key]]
                 else:
                     # Add 0.0 to avoid -0.0 values
                     telemetry[key] = round(telemetry[key], keys_to_round[key]) + 0.0
@@ -1491,9 +1406,7 @@ class MTDomeCom:
             removed.
         """
         dict_with_keys_removed = {
-            x: dict_with_too_many_keys[x]
-            for x in dict_with_too_many_keys
-            if x not in keys_to_remove
+            x: dict_with_too_many_keys[x] for x in dict_with_too_many_keys if x not in keys_to_remove
         }
         return dict_with_keys_removed
 

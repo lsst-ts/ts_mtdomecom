@@ -64,9 +64,7 @@ def get_distance(start_position: float, end_position: float) -> float:
     distance: `float`
         The smallest distance [rad] between the initial and target positions.
     """
-    distance = utils.angle_diff(
-        math.degrees(end_position), math.degrees(start_position)
-    ).rad
+    distance = utils.angle_diff(math.degrees(end_position), math.degrees(start_position)).rad
     return distance
 
 
@@ -253,21 +251,15 @@ class AmcsStatus(BaseMockStatus):
             self.position_actual = self.start_position + distance * frac_time
             await self._determine_velocity_actual(distance)
             self.current_state = MotionState.MOVING.name
-        self.position_actual = utils.angle_wrap_nonnegative(
-            math.degrees(self.position_actual)
-        ).rad
+        self.position_actual = utils.angle_wrap_nonnegative(math.degrees(self.position_actual)).rad
 
     async def _handle_past_end_tai(self, current_tai: float) -> None:
-        if self.target_state == MotionState.CRAWLING.name or not math.isclose(
-            self.crawl_velocity, 0.0
-        ):
+        if self.target_state == MotionState.CRAWLING.name or not math.isclose(self.crawl_velocity, 0.0):
             diff_since_crawl_started = current_tai - self.end_tai
             calculation_position = self.position_commanded
             if self.target_state == MotionState.CRAWLING.name:
                 calculation_position = self.start_position
-            self.position_actual = (
-                calculation_position + self.crawl_velocity * diff_since_crawl_started
-            )
+            self.position_actual = calculation_position + self.crawl_velocity * diff_since_crawl_started
             self.velocity_actual = self.crawl_velocity
             self.current_state = MotionState.CRAWLING.name
         else:
@@ -326,13 +318,9 @@ class AmcsStatus(BaseMockStatus):
         # Determine the current drawn by the azimuth motors. Here fixed current
         # values are assumed while in reality they vary depending on the speed.
         if self.current_state == MotionState.MOVING.name:
-            self.drive_current_actual = np.full(
-                AMCS_NUM_MOTORS, AMCS_CURRENT_PER_MOTOR_MOVING, dtype=float
-            )
+            self.drive_current_actual = np.full(AMCS_NUM_MOTORS, AMCS_CURRENT_PER_MOTOR_MOVING, dtype=float)
         elif self.current_state == MotionState.CRAWLING.name:
-            self.drive_current_actual = np.full(
-                AMCS_NUM_MOTORS, AMCS_CURRENT_PER_MOTOR_CRAWLING, dtype=float
-            )
+            self.drive_current_actual = np.full(AMCS_NUM_MOTORS, AMCS_CURRENT_PER_MOTOR_CRAWLING, dtype=float)
         else:
             self.drive_current_actual = np.zeros(AMCS_NUM_MOTORS, dtype=float)
         self.llc_status = {
@@ -393,9 +381,7 @@ class AmcsStatus(BaseMockStatus):
         self.start_position = self.position_actual
         self.crawl_velocity = velocity
         self.start_tai = start_tai
-        duration = get_duration(
-            self.position_actual, self.position_commanded, self.vmax
-        )
+        duration = get_duration(self.position_actual, self.position_commanded, self.vmax)
         self.end_tai = start_tai + duration
         self.start_state = self.current_state
         self.target_state = MotionState.MOVING.name
@@ -477,9 +463,7 @@ class AmcsStatus(BaseMockStatus):
         self.start_position = self.position_actual
         self.crawl_velocity = 0.0
         self.start_tai = start_tai
-        duration = get_duration(
-            self.position_actual, self.position_commanded, self.vmax
-        )
+        duration = get_duration(self.position_actual, self.position_commanded, self.vmax)
         self.end_tai = start_tai + duration
         self.start_state = MotionState.PARKING.name
         self.target_state = MotionState.MOVING.name
@@ -640,8 +624,7 @@ class AmcsStatus(BaseMockStatus):
         """
         if self.current_state not in SET_ZERO_AZ_ALLOWED_STATES:
             raise RuntimeError(
-                f"AMCS is in {self.current_state} and needs to be in "
-                f"{SET_ZERO_AZ_ALLOWED_STATES}."
+                f"AMCS is in {self.current_state} and needs to be in {SET_ZERO_AZ_ALLOWED_STATES}."
             )
         self.start_position = 0.0
         self.crawl_velocity = 0.0

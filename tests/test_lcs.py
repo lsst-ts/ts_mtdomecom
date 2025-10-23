@@ -72,12 +72,8 @@ class LcsTestCase(unittest.IsolatedAsyncioTestCase):
             ]
             if louver_id in expected_positions:
                 if lcs_status["status"]["status"][louver_id] == MotionState.MOVING:
-                    assert (
-                        drive_current_actual_motor1 == mtdomecom.LCS_CURRENT_PER_MOTOR
-                    )
-                    assert (
-                        drive_current_actual_motor2 == mtdomecom.LCS_CURRENT_PER_MOTOR
-                    )
+                    assert drive_current_actual_motor1 == mtdomecom.LCS_CURRENT_PER_MOTOR
+                    assert drive_current_actual_motor2 == mtdomecom.LCS_CURRENT_PER_MOTOR
                     assert lcs_status["powerDraw"] == LOUVERS_POWER_DRAW
             else:
                 assert drive_current_actual_motor1 == pytest.approx(0.0)
@@ -118,9 +114,7 @@ class LcsTestCase(unittest.IsolatedAsyncioTestCase):
         await self.lcs.setLouvers(position=position, current_tai=START_TAI)
         for louver_id in expected_positions:
             self.lcs.current_state[louver_id] = MotionState.MOVING.name
-            await self.lcs.evaluate_state(
-                current_tai=START_TAI + 31.0, louver_id=louver_id
-            )
+            await self.lcs.evaluate_state(current_tai=START_TAI + 31.0, louver_id=louver_id)
         await self.verify_lcs(expected_positions=expected_positions)
 
     async def test_close_louvers(self) -> None:
@@ -143,9 +137,7 @@ class LcsTestCase(unittest.IsolatedAsyncioTestCase):
         await self.lcs.closeLouvers(current_tai=START_TAI)
         for louver_id in expected_positions:
             self.lcs.current_state[louver_id] = MotionState.MOVING.name
-            await self.lcs.evaluate_state(
-                current_tai=START_TAI + 31.0, louver_id=louver_id
-            )
+            await self.lcs.evaluate_state(current_tai=START_TAI + 31.0, louver_id=louver_id)
         expected_positions = {
             5: 0.0,
             6: 0.0,

@@ -30,23 +30,9 @@ class CapacitorBanksTestCase(unittest.IsolatedAsyncioTestCase):
     async def test_capacitor_banks_status(self) -> None:
         cscs = mtdomecom.mock_llc.CbcsStatus()
         await cscs.determine_status(current_tai=START_TAI)
-        assert (
-            cscs.llc_status["fuseIntervention"]
-            == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
-        )
-        assert (
-            cscs.llc_status["smokeDetected"]
-            == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
-        )
-        assert (
-            cscs.llc_status["highTemperature"]
-            == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
-        )
-        assert (
-            cscs.llc_status["lowResidualVoltage"]
-            == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
-        )
-        assert (
-            cscs.llc_status["doorOpen"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
-        )
+        assert cscs.llc_status["fuseIntervention"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
+        assert cscs.llc_status["smokeDetected"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
+        assert cscs.llc_status["highTemperature"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
+        assert cscs.llc_status["lowResidualVoltage"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
+        assert cscs.llc_status["doorOpen"] == [False] * mtdomecom.CBCS_NUM_CAPACITOR_BANKS
         assert cscs.llc_status["dcBusVoltage"] == 0.0

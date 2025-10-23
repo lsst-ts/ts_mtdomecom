@@ -123,9 +123,7 @@ class PowerManagementHandler:
             priority = command_priorities_to_use[command.command]
         await self.command_queue.put((priority, command))
 
-    async def get_next_command(
-        self, current_power_draw: dict[str, float]
-    ) -> ScheduledCommand | None:
+    async def get_next_command(self, current_power_draw: dict[str, float]) -> ScheduledCommand | None:
         """Get the next command to be issued, or None if no commands currently
         can be issued or are scheduled.
 
@@ -153,9 +151,7 @@ class PowerManagementHandler:
                 | PowerManagementMode.MAINTENANCE
                 | PowerManagementMode.EMERGENCY
             ):
-                func = getattr(
-                    self, f"get_next_command_{self.power_management_mode.name.lower()}"
-                )
+                func = getattr(self, f"get_next_command_{self.power_management_mode.name.lower()}")
                 scheduled_command = await func(current_power_draw)
             case PowerManagementMode.NO_POWER_MANAGEMENT | _:
                 _, scheduled_command = await self.command_queue.get()
@@ -202,9 +198,7 @@ class PowerManagementHandler:
         """
         _, scheduled_command = await self.command_queue.get()
         match scheduled_command.command:
-            case (
-                CommandName.OPEN_SHUTTER | CommandName.CLOSE_SHUTTER | CommandName.HOME
-            ):
+            case CommandName.OPEN_SHUTTER | CommandName.CLOSE_SHUTTER | CommandName.HOME:
                 return await self.generic_get_scheduled_command_or_stop_commands(
                     scheduled_command,
                     APS_POWER_DRAW,
@@ -432,9 +426,7 @@ class PowerManagementHandler:
             True if at least one stop command was scheduled, False otherwise.
         """
         # Verify that there is enough power available to execute the command.
-        total_power_draw = sum(
-            [power_draw for system, power_draw in current_power_draw.items()]
-        )
+        total_power_draw = sum([power_draw for system, power_draw in current_power_draw.items()])
         power_available = self.slip_ring.get_available_power(total_power_draw)
         if power_available - total_power_draw > power_required:
             return scheduled_command
@@ -458,17 +450,13 @@ class PowerManagementHandler:
                 # Schedule the command to stop the current motion. The priority
                 # is set to 0 meaning a higher priority than all other
                 # commands.
-                self.log.info(
-                    f"Scheduling a stop command for {stop_command.llc_name.name}."
-                )
+                self.log.info(f"Scheduling a stop command for {stop_command.llc_name.name}.")
                 await self.command_queue.put((HIGH_PRIOTITY, stop))
                 stop_command_issued = True
             else:
                 stop_command_issued = stop_command_issued | False
         if stop_command_issued:
-            self.log.info(
-                f"Waiting for subsystems to stop. Rescheduling {scheduled_command.command}."
-            )
+            self.log.info(f"Waiting for subsystems to stop. Rescheduling {scheduled_command.command}.")
             await self.schedule_command(scheduled_command)
             return None
         else:
