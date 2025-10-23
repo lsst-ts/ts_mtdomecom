@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.3 (2025-10-23)
+===================
+
+Other Changes and Additions
+---------------------------
+
+- Formatted code with ruff. (`OSW-1058 <https://rubinobs.atlassian.net//browse/OSW-1058>`_)
+
+
 v0.3.2 (2025-10-09)
 ===================
 
