@@ -84,12 +84,8 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             The expected motion state at the given TAI time.
         """
         await self.lwscs.determine_status(current_tai=tai)
-        assert math.degrees(self.lwscs.llc_status["positionActual"]) == pytest.approx(
-            expected_position
-        )
-        assert math.degrees(self.lwscs.llc_status["velocityActual"]) == pytest.approx(
-            expected_velocity
-        )
+        assert math.degrees(self.lwscs.llc_status["positionActual"]) == pytest.approx(expected_position)
+        assert math.degrees(self.lwscs.llc_status["velocityActual"]) == pytest.approx(expected_velocity)
         assert expected_motion_state.name == self.lwscs.llc_status["status"]["status"]
         expected_drive_current: list[float] = [0.0] * mtdomecom.LWSCS_NUM_MOTORS
         expected_power_draw = 0.0
@@ -97,9 +93,7 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             MotionState.CRAWLING,
             MotionState.MOVING,
         ]:
-            expected_drive_current = [
-                mtdomecom.LWSCS_CURRENT_PER_MOTOR
-            ] * mtdomecom.LWSCS_NUM_MOTORS
+            expected_drive_current = [mtdomecom.LWSCS_CURRENT_PER_MOTOR] * mtdomecom.LWSCS_NUM_MOTORS
             expected_power_draw = LWS_POWER_DRAW
         assert expected_drive_current == self.lwscs.llc_status["driveCurrentActual"]
         assert expected_power_draw == self.lwscs.llc_status["powerDraw"]
@@ -166,13 +160,9 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             start_tai=start_tai,
         )
         if command == "move":
-            await self.verify_move_duration(
-                target_position, start_tai, expected_duration
-            )
+            await self.verify_move_duration(target_position, start_tai, expected_duration)
         elif command == "crawl":
-            await self.verify_crawl_duration(
-                crawl_velocity, start_tai, expected_duration
-            )
+            await self.verify_crawl_duration(crawl_velocity, start_tai, expected_duration)
         else:
             self.fail(f"Unsupported {command!r} received.")
         for expected_state in expected_states:
@@ -395,9 +385,7 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             start_tai=start_tai,
         )
         try:
-            duration = await self.lwscs.moveEl(
-                position=math.radians(target_position), start_tai=start_tai
-            )
+            duration = await self.lwscs.moveEl(position=math.radians(target_position), start_tai=start_tai)
             assert expected_duration == pytest.approx(duration)
             self.fail("Expected a ValueError.")
         except ValueError:
@@ -423,9 +411,7 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             start_tai=start_tai,
         )
         try:
-            duration = await self.lwscs.moveEl(
-                position=math.radians(target_position), start_tai=start_tai
-            )
+            duration = await self.lwscs.moveEl(position=math.radians(target_position), start_tai=start_tai)
             assert expected_duration == pytest.approx(duration)
             self.fail("Expected a ValueError.")
         except ValueError:

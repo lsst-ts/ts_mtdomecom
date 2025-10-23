@@ -111,15 +111,10 @@ class SlipRing:
         power_over_limit_fraction = (
             0.0
             if self.max_power_drawn < CONTINUOUS_SLIP_RING_POWER_CAPACITY
-            else (self.max_power_drawn - CONTINUOUS_SLIP_RING_POWER_CAPACITY)
-            / OVER_LIMIT_POWER_AVAILABLE
+            else (self.max_power_drawn - CONTINUOUS_SLIP_RING_POWER_CAPACITY) / OVER_LIMIT_POWER_AVAILABLE
         )
         time_over_limit_fraction = self.time_over_limit / MAXIMUM_OVER_LOW_LIMIT_TIME
-        return (
-            MAXIMUM_COOL_DOWN_TIME
-            * power_over_limit_fraction
-            * time_over_limit_fraction
-        )
+        return MAXIMUM_COOL_DOWN_TIME * power_over_limit_fraction * time_over_limit_fraction
 
     def get_available_power(self, current_power_draw: float) -> float:
         """Get the available power.
@@ -211,8 +206,7 @@ class SlipRing:
             The available power [W].
         """
         if (
-            utils.current_tai() - self.over_limit_start_time
-            >= MAXIMUM_OVER_LOW_LIMIT_TIME
+            utils.current_tai() - self.over_limit_start_time >= MAXIMUM_OVER_LOW_LIMIT_TIME
             or current_power_draw <= CONTINUOUS_SLIP_RING_POWER_CAPACITY
         ):
             self.time_over_limit = utils.current_tai() - self.over_limit_start_time

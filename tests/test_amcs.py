@@ -83,12 +83,8 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
             The expected motion state at the given TAI time.
         """
         await self.amcs.determine_status(current_tai=tai)
-        assert math.degrees(self.amcs.llc_status["positionActual"]) == pytest.approx(
-            expected_position
-        )
-        assert math.degrees(self.amcs.llc_status["velocityActual"]) == pytest.approx(
-            expected_velocity
-        )
+        assert math.degrees(self.amcs.llc_status["positionActual"]) == pytest.approx(expected_position)
+        assert math.degrees(self.amcs.llc_status["velocityActual"]) == pytest.approx(expected_velocity)
         assert expected_motion_state.name == self.amcs.llc_status["status"]["status"]
         expected_drive_current: list[float] = [0.0] * AMCS_NUM_MOTORS
         if expected_motion_state == MotionState.MOVING:
@@ -160,13 +156,9 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
                 start_tai=start_tai,
             )
         if command == "move":
-            await self.verify_move_duration(
-                target_position, crawl_velocity, start_tai, expected_duration
-            )
+            await self.verify_move_duration(target_position, crawl_velocity, start_tai, expected_duration)
         elif command == "crawl":
-            await self.verify_crawl_duration(
-                crawl_velocity, start_tai, expected_duration
-            )
+            await self.verify_crawl_duration(crawl_velocity, start_tai, expected_duration)
         else:
             self.fail(f"Unsupported {command!r} received.")
         for expected_state in expected_states:
@@ -330,9 +322,7 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         start_tai = START_TAI
         target_position = 350.0
         crawl_velocity = 0.1
-        expected_duration = math.fabs(
-            (target_position - start_position - 360.0) / MAX_SPEED
-        )
+        expected_duration = math.fabs((target_position - start_position - 360.0) / MAX_SPEED)
         expected_states = [
             ExpectedState(1.0, 6.0, -MAX_SPEED, MotionState.MOVING),
             ExpectedState(2.0, 2.0, -MAX_SPEED, MotionState.MOVING),
@@ -359,9 +349,7 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         start_tai = START_TAI
         target_position = 350.0
         crawl_velocity = -0.1
-        expected_duration = math.fabs(
-            (target_position - start_position - 360.0) / MAX_SPEED
-        )
+        expected_duration = math.fabs((target_position - start_position - 360.0) / MAX_SPEED)
         expected_states = [
             ExpectedState(1.0, 6.0, -MAX_SPEED, MotionState.MOVING),
             ExpectedState(2.0, 2.0, -MAX_SPEED, MotionState.MOVING),
@@ -388,9 +376,7 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         start_tai = START_TAI
         target_position = 10.0
         crawl_velocity = 0.1
-        expected_duration = math.fabs(
-            (target_position - start_position + 360.0) / MAX_SPEED
-        )
+        expected_duration = math.fabs((target_position - start_position + 360.0) / MAX_SPEED)
         expected_states = [
             ExpectedState(1.0, 354.0, MAX_SPEED, MotionState.MOVING),
             ExpectedState(2.0, 358.0, MAX_SPEED, MotionState.MOVING),
@@ -417,9 +403,7 @@ class AmcsTestCase(unittest.IsolatedAsyncioTestCase):
         start_tai = START_TAI
         target_position = 10.0
         crawl_velocity = -0.1
-        expected_duration = math.fabs(
-            (target_position - start_position + 360.0) / MAX_SPEED
-        )
+        expected_duration = math.fabs((target_position - start_position + 360.0) / MAX_SPEED)
         expected_states = [
             ExpectedState(1.0, 354.0, MAX_SPEED, MotionState.MOVING),
             ExpectedState(2.0, 358.0, MAX_SPEED, MotionState.MOVING),

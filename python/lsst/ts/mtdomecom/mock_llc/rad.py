@@ -48,15 +48,9 @@ class RadStatus(BaseMockStatus):
         self.drive_temperature = np.full(RAD_NUM_DOORS, 20.0, dtype=float)
         self.resolver_head_raw = np.zeros(RAD_NUM_DOORS, dtype=float)
         self.resolver_head_calibrated = np.zeros(RAD_NUM_DOORS, dtype=float)
-        self.open_limit_switch_engaged = np.full(
-            RAD_NUM_LIMIT_SWITCHES, False, dtype=bool
-        )
-        self.close_limit_switch_engaged = np.full(
-            RAD_NUM_LIMIT_SWITCHES, True, dtype=bool
-        )
-        self.locking_pins = np.full(
-            RAD_NUM_LOCKING_PINS, RadLockingPinState.ENGAGED, dtype=float
-        )
+        self.open_limit_switch_engaged = np.full(RAD_NUM_LIMIT_SWITCHES, False, dtype=bool)
+        self.close_limit_switch_engaged = np.full(RAD_NUM_LIMIT_SWITCHES, True, dtype=bool)
+        self.locking_pins = np.full(RAD_NUM_LOCKING_PINS, RadLockingPinState.ENGAGED, dtype=float)
         self.brakes_engaged = np.full(RAD_NUM_DOORS, True, dtype=bool)
         self.photoelectric_sensor_clear = True
         self.light_curtain_clear = True

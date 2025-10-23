@@ -43,9 +43,7 @@ class LcsStateMachineTestCase(unittest.IsolatedAsyncioTestCase):
         current_tai = 31
         await lcs.evaluate_state(current_tai, louver_id)
         assert lcs.current_state[louver_id] == MotionState.STOPPING.name
-        assert lcs.position_actual[louver_id] == pytest.approx(
-            lcs.position_commanded[louver_id]
-        )
+        assert lcs.position_actual[louver_id] == pytest.approx(lcs.position_commanded[louver_id])
 
     async def test_handle_moving_close(self) -> None:
         louver_id = 0
@@ -64,18 +62,13 @@ class LcsStateMachineTestCase(unittest.IsolatedAsyncioTestCase):
         current_tai = 31
         await lcs.evaluate_state(current_tai, louver_id)
         assert lcs.current_state[louver_id] == MotionState.STOPPING.name
-        assert lcs.position_actual[louver_id] == pytest.approx(
-            lcs.position_commanded[louver_id]
-        )
+        assert lcs.position_actual[louver_id] == pytest.approx(lcs.position_commanded[louver_id])
 
     async def test_full_state_cycle(self) -> None:
         louver_id = 0
         lcs = mtdomecom.mock_llc.LcsStatus()
         await lcs.evaluate_state(current_tai=30.0, louver_id=louver_id)
-        assert (
-            lcs.current_state[louver_id]
-            == mtdomecom.InternalMotionState.STATIONARY.name
-        )
+        assert lcs.current_state[louver_id] == mtdomecom.InternalMotionState.STATIONARY.name
 
         lcs.start_state[louver_id] = MotionState.OPENING.name
         lcs.target_state[louver_id] = mtdomecom.InternalMotionState.STATIONARY.name
@@ -104,14 +97,8 @@ class LcsStateMachineTestCase(unittest.IsolatedAsyncioTestCase):
         # same.
         for _ in range(3):
             await lcs.evaluate_state(current_tai=30.0, louver_id=louver_id)
-            assert (
-                lcs.start_state[louver_id]
-                == mtdomecom.InternalMotionState.STATIONARY.name
-            )
-            assert (
-                lcs.current_state[louver_id]
-                == mtdomecom.InternalMotionState.STATIONARY.name
-            )
+            assert lcs.start_state[louver_id] == mtdomecom.InternalMotionState.STATIONARY.name
+            assert lcs.current_state[louver_id] == mtdomecom.InternalMotionState.STATIONARY.name
 
         lcs.start_state[louver_id] = MotionState.CLOSING.name
         lcs.target_state[louver_id] = mtdomecom.InternalMotionState.STATIONARY.name
@@ -138,11 +125,5 @@ class LcsStateMachineTestCase(unittest.IsolatedAsyncioTestCase):
         # same.
         for _ in range(3):
             await lcs.evaluate_state(current_tai=60.0, louver_id=louver_id)
-            assert (
-                lcs.current_state[louver_id]
-                == mtdomecom.InternalMotionState.STATIONARY.name
-            )
-            assert (
-                lcs.start_state[louver_id]
-                == mtdomecom.InternalMotionState.STATIONARY.name
-            )
+            assert lcs.current_state[louver_id] == mtdomecom.InternalMotionState.STATIONARY.name
+            assert lcs.start_state[louver_id] == mtdomecom.InternalMotionState.STATIONARY.name
