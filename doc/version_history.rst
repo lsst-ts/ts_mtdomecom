@@ -8,6 +8,29 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.4 (2025-10-26)
+===================
+
+New Features
+------------
+
+- Added louvers details doc. (`OSW-1057 <https://rubinobs.atlassian.net//browse/OSW-1057>`_)
+- Added AMCS and ThCS telemetry details doc. (`OSW-1057 <https://rubinobs.atlassian.net//browse/OSW-1057>`_)
+
+
+Bug Fixes
+---------
+
+- Fix python package name. (`OSW-1057 <https://rubinobs.atlassian.net//browse/OSW-1057>`_)
+- Fix ThCS schema file name. (`OSW-1057 <https://rubinobs.atlassian.net//browse/OSW-1057>`_)
+
+
+Performance Enhancement
+-----------------------
+
+- Loading enabled louvers from a config file. (`OSW-1057 <https://rubinobs.atlassian.net//browse/OSW-1057>`_)
+
+
 v0.3.3 (2025-10-23)
 ===================
 
