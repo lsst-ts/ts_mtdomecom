@@ -20,6 +20,8 @@ Using lsst.ts.mtdomecom
     configuration_parameters
     response_codes
     power_management
+    amcs_and_thcs_telemetry_details
+    louver_locations
     :maxdepth: 2
 
 Build and Test
