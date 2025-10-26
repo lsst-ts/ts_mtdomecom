@@ -21,16 +21,18 @@
 
 from __future__ import annotations
 
-__all__ = ["COMMANDS_REPLIED_PERIOD", "CommandTime", "MTDomeCom"]
+__all__ = ["COMMANDS_REPLIED_PERIOD", "CommandTime", "MTDomeCom", "get_louvers_enabled"]
 
 import asyncio
 import logging
 import math
+import pathlib
 import types
 import typing
 from dataclasses import dataclass
 from types import SimpleNamespace
 
+import yaml
 from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import (
     Louver,
@@ -51,7 +53,6 @@ from .constants import (
     LCS_NUM_MOTORS_PER_LOUVER,
 )
 from .enums import (
-    LOUVERS_ENABLED,
     CommandName,
     LlcName,
     MaxValuesConfigType,
@@ -183,6 +184,41 @@ _COMMAND_QUEUE_PERIOD = 1.0
 SLEEP_INTERVAL = 1.0
 
 
+def get_louvers_enabled(config_dir: pathlib.Path) -> set[Louver]:
+    """Load a set of all enabled louvers from the "louvers_enabled.yaml"
+    configuration file.
+
+    Parameters
+    ----------
+    config_dir : `pathlib.Path`
+        The directory from where to load the louvers enabled configuration
+        file.
+
+    Returns
+    -------
+    set[Louver]
+        Set with all enabled louvers.
+
+    Raises
+    ------
+    RuntimeError
+        In case the configuration file cannot be read.
+    """
+    louvers_enabled: set[Louver] = set()
+
+    louvers_enabled_config_file = config_dir / "louvers_enabled.yaml"
+    try:
+        with open(louvers_enabled_config_file, "r") as f:
+            louvers_enabled_raw_data = f.read()
+        louvers_enabled_data = yaml.safe_load(louvers_enabled_raw_data)
+        for louver_enabled in louvers_enabled_data["louvers_enabled"]:
+            louvers_enabled.add(Louver[louver_enabled])
+    except Exception as e:
+        raise RuntimeError(f"Could not parse data in {louvers_enabled_config_file} as a dict: {e!r}.")
+
+    return louvers_enabled
+
+
 @dataclass
 class CommandTime:
     """Class representing the TAI time at which a command was issued.
@@ -210,6 +246,9 @@ class MTDomeCom:
     config : `SimpleNameSpace`
         The configuration to use. This should contain the host name and port to
         connect to.
+    config_dir : `pathlib.Path`
+        The configuration directory as used by the CSC. This must be the full
+        path including the schema version directory.
     simulation_mode : `ValidSimulationMode`
         The simulation mode to use. Defaults to `NORMAL_OPERATIONS`.
     telemetry_callbacks : `dict`[`LlcName`, `typing.Callable`]
@@ -230,6 +269,7 @@ class MTDomeCom:
         self,
         log: logging.Logger,
         config: SimpleNamespace,
+        config_dir: pathlib.Path,
         simulation_mode: ValidSimulationMode = ValidSimulationMode.NORMAL_OPERATIONS,
         telemetry_callbacks: (dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None) = None,
         start_periodic_tasks: bool = True,
@@ -320,6 +360,9 @@ class MTDomeCom:
         self.power_management_mode = PowerManagementMode.NO_POWER_MANAGEMENT
         self.power_management_handler = PowerManagementHandler(self.log, command_priorities)
 
+        # Load louvers config file.
+        self.louvers_enabled = get_louvers_enabled(config_dir)
+
         self.log.info("MTDomeCom constructed.")
 
     @property
@@ -359,7 +402,7 @@ class MTDomeCom:
 
         louver_states = []
         for louver in Louver:
-            if louver in LOUVERS_ENABLED:
+            if louver in self.louvers_enabled:
                 louver_states.append(f"{louver.name} (index {louver.value + 1})")
         louvers_message = "Louvers currently enabled: [" + ", ".join(louver_states) + "]"
         self.log.info(louvers_message)

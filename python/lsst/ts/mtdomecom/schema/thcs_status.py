@@ -24,7 +24,7 @@ import pathlib
 
 from .registry import registry
 
-json_path = pathlib.Path(__file__).parents[0] / "th_status.json"
+json_path = pathlib.Path(__file__).parents[0] / "thcs_status.json"
 with open(json_path) as f:
     lines = "".join(f.readlines())
     registry["ThCS"] = json.loads(lines)

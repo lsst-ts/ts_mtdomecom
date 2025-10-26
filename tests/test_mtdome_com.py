@@ -23,12 +23,14 @@ import asyncio
 import contextlib
 import logging
 import math
+import pathlib
 import types
 import typing
 import unittest
 from unittest.mock import patch
 
 import pytest
+import yaml
 from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
@@ -38,6 +40,9 @@ from lsst.ts.xml.enums.MTDome import (
     PowerManagementMode,
     SubSystemId,
 )
+
+
+CONFIG_DIR = pathlib.Path(__file__).parent / "data"
 
 
 class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
@@ -51,9 +56,15 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         async with mtdomecom.MTDomeCom(
             log=self.log,
             config=types.SimpleNamespace(),
+            config_dir=CONFIG_DIR,
             simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
         ) as self.mtdomecom_com:
             assert len(self.mtdomecom_com.telemetry_callbacks) == 0
+
+            with open(CONFIG_DIR / "louvers_enabled.yaml") as config_file:  # type: ignore
+                config_data = yaml.safe_load(config_file)
+                assert len(config_data["louvers_enabled"]) == len(self.mtdomecom_com.louvers_enabled)
+
             yield
 
     async def asyncTearDown(self) -> None:
@@ -307,6 +318,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com = mtdomecom.MTDomeCom(
                 log=self.log,
                 config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
                 simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
                 telemetry_callbacks=telemetry_callbacks,
             )
@@ -345,6 +357,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com = mtdomecom.MTDomeCom(
                 log=self.log,
                 config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
                 simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
                 telemetry_callbacks=telemetry_callbacks,
                 start_periodic_tasks=False,
@@ -397,6 +410,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com = mtdomecom.MTDomeCom(
                 log=self.log,
                 config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
                 simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
                 telemetry_callbacks=telemetry_callbacks,
                 start_periodic_tasks=False,
@@ -430,6 +444,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com = mtdomecom.MTDomeCom(
                 log=self.log,
                 config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
                 simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
                 telemetry_callbacks=telemetry_callbacks,
                 start_periodic_tasks=False,
@@ -466,6 +481,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com = mtdomecom.MTDomeCom(
                 log=self.log,
                 config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
                 simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
                 telemetry_callbacks=telemetry_callbacks,
                 start_periodic_tasks=False,
@@ -490,6 +506,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             self.mtdomecom_com = mtdomecom.MTDomeCom(
                 log=self.log,
                 config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
                 simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
                 telemetry_callbacks=telemetry_callbacks,
                 start_periodic_tasks=False,
