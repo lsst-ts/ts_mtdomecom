@@ -69,15 +69,16 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         TCP/IP port
     log : `logging.Logger`
         The logger to use.
-    connect_callback : `callable`
+    connect_callback : `callable`, optional
         The callback to use when a client connects.
-    communication_error : `bool`
+    communication_error : `bool`, optional
         Is there a communication error with the rotating part (True) or not
         (False)? This is for unit tests only. The default is False.
-    timeout_error : `bool`
+    timeout_error : `bool`, optional
         Do command replies timeout of not? The default is False.
-    keep_running : `bool`
-        Make the server run forever? The default is False.
+    keep_running : `bool`, optional
+        Make the server run forever? This is for unit tests only. The default
+        is False.
 
     Notes
     -----

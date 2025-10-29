@@ -147,7 +147,7 @@ class ResponseCode(enum.IntEnum):
     The codes mean
 
         * 0, "OK", "Command received correctly and is being executed."
-        * 1, Not used.
+        * 1, "Not Connected", "The CSC is not connected to the fixed cRIO."
         * 2, "Unsupported", "A command was sent that is not supported by the
           lower level component, for instance park is sent to LCS or 'mooveAz'
           instead of 'moveAz' to AMCS."
@@ -167,6 +167,7 @@ class ResponseCode(enum.IntEnum):
     """
 
     OK = 0
+    NOT_CONNECTED = 1
     UNSUPPORTED = 2
     INCORRECT_PARAMETERS = 3
     INCORRECT_SOURCE = 4
