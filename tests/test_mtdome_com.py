@@ -393,7 +393,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             await self.mtdomecom_com.status_thcs()
             assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.THCS]
 
-    async def test_communication_error(self) -> None:
+    async def test_rotating_communication_error(self) -> None:
         async with self.create_mtdomecom():
             await self.mtdomecom_com.disconnect()
             telemetry_callbacks = {
@@ -436,6 +436,40 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             with pytest.raises(ValueError) as ve:
                 await self.mtdomecom_com.open_shutter()
             assert "was not received by the rotating part" in str(ve.value)
+
+    async def test_fixed_communication_error(self) -> None:
+        async with self.create_mtdomecom():
+            await self.mtdomecom_com.disconnect()
+            telemetry_callbacks = {mtdomecom.LlcName.AMCS: self.handle_llc_status}
+            self.mtdomecom_com = mtdomecom.MTDomeCom(
+                log=self.log,
+                config=types.SimpleNamespace(),
+                config_dir=CONFIG_DIR,
+                simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+                telemetry_callbacks=telemetry_callbacks,
+                start_periodic_tasks=False,
+                communication_error=False,
+            )
+
+            # No communication error so should work.
+            await self.mtdomecom_com.connect()
+            await self.mtdomecom_com.status_amcs()
+            assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.AMCS]
+
+            # Communication error so should not work.
+            self.mtdomecom_com.client.write_json = self.write_json
+
+            await self.mtdomecom_com.status_amcs()
+
+            assert "command_name" in self.llc_status
+            assert "exception" in self.llc_status
+            assert "response_code" in self.llc_status
+            assert self.llc_status["command_name"] == mtdomecom.CommandName.STATUS_AMCS
+            assert self.llc_status["response_code"] == mtdomecom.ResponseCode.NOT_CONNECTED
+
+    async def write_json(self, data: typing.Any) -> None:
+        """Method to mock a connection error."""
+        raise ConnectionError()
 
     async def test_communication_error_fixed_part(self) -> None:
         async with self.create_mtdomecom():
