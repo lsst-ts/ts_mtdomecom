@@ -1,1 +1,0 @@
-Ensured that Not Connected errors are reported correctly.

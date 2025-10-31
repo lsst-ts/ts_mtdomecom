@@ -8,6 +8,21 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.5 (2025-10-31)
+===================
+
+New Features
+------------
+
+- Extracted script to run the MTDome simulator. (`OSW-1294 <https://rubinobs.atlassian.net//browse/OSW-1294>`_)
+
+
+Bug Fixes
+---------
+
+- Ensured that Not Connected errors are reported correctly. (`OSW-1294 <https://rubinobs.atlassian.net//browse/OSW-1294>`_)
+
+
 v0.3.4 (2025-10-26)
 ===================
 
