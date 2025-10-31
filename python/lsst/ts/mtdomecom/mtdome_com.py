@@ -415,11 +415,11 @@ class MTDomeCom:
         """
         self.log.info("disconnect.")
 
-        if self.connected:
-            # Stop all periodic tasks, including polling for the status of the
-            # lower level components.
-            await self._cancel_periodic_tasks()
+        # Stop all periodic tasks, including polling for the status of the
+        # lower level components.
+        await self._cancel_periodic_tasks()
 
+        if self.connected:
             assert self.client is not None
             await self.client.close()
             self.client = None
@@ -714,7 +714,15 @@ class MTDomeCom:
 
             if command not in disabled_commands:
                 self.log.debug(f"Sending {command_dict=}.")
-                await self.client.write_json(data=command_dict)
+                try:
+                    await self.client.write_json(data=command_dict)
+                except ConnectionError as exp:
+                    self.communication_error_report = {
+                        "command_name": CommandName(command_name),
+                        "exception": exp,
+                        "response_code": ResponseCode.NOT_CONNECTED,
+                    }
+                    raise exp
                 try:
                     async with asyncio.timeout(_TIMEOUT):
                         data = await self.client.read_json()
@@ -1311,8 +1319,17 @@ class MTDomeCom:
         while llc_name not in status:
             try:
                 status = await self.write_then_read_reply(command=command)
-            except Exception:
+            except ValueError:
                 self.log.exception(f"Exception requesting status for {llc_name.value}.")
+                await cb(self.communication_error_report)
+                return
+            except Exception as exception:
+                self.log.exception(f"Exception requesting status for {llc_name.value}.")
+                self.communication_error_report = {
+                    "command_name": CommandName(command),
+                    "exception": exception,
+                    "response_code": ResponseCode.NOT_CONNECTED,
+                }
                 await cb(self.communication_error_report)
                 return
 

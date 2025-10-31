@@ -69,13 +69,16 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         TCP/IP port
     log : `logging.Logger`
         The logger to use.
-    connect_callback : `callable`
+    connect_callback : `callable`, optional
         The callback to use when a client connects.
-    communication_error : `bool`
+    communication_error : `bool`, optional
         Is there a communication error with the rotating part (True) or not
         (False)? This is for unit tests only. The default is False.
-    timeout_error : `bool`
+    timeout_error : `bool`, optional
         Do command replies timeout of not? The default is False.
+    keep_running : `bool`, optional
+        Make the server run forever? This is for unit tests only. The default
+        is False.
 
     Notes
     -----
@@ -116,6 +119,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         connect_callback: None | tcpip.ConnectCallbackType = None,
         communication_error: bool = False,
         timeout_error: bool = False,
+        keep_running: bool = False,
     ) -> None:
         super().__init__(
             port=port,
@@ -202,6 +206,9 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         # Keep track of the command ID.
         self._command_id = -1
 
+        # Keep running forever?
+        self.keep_running = keep_running
+
         # Variables for the lower level components.
         self.amcs: AmcsStatus | None = None
         self.apscs: ApscsStatus | None = None
@@ -237,6 +244,10 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         self.moncs = MoncsStatus()
         self.rad = RadStatus()
         self.thcs = ThcsStatus()
+
+        if self.keep_running:
+            self.log.info("Running forever. Press Ctrl+C to stop.")
+            await self._server.serve_forever()
 
     async def write_reply(self, **data: typing.Any) -> None:
         """Write the data appended with the commandId.
@@ -885,25 +896,3 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         """
         assert self.apscs is not None
         return await self.apscs.home(self.current_tai, direction)
-
-
-async def main() -> None:
-    """Main method that gets executed in standalone mode."""
-    log = logging.getLogger("MockMTDomeController")
-    log.info("main method")
-    # An arbitrarily chosen port. Nothing special about it.
-    port = 5000
-    log.info("Constructing mock controller.")
-    mock_ctrl = MockMTDomeController(port=port, log=log)
-    log.info("Starting mock MTDome controller.")
-    await mock_ctrl.start(keep_running=True)
-
-
-if __name__ == "__main__":
-    logging.info("main")
-    loop = asyncio.get_event_loop()
-    try:
-        logging.info("Calling main method")
-        loop.run_until_complete(main())
-    except (asyncio.CancelledError, KeyboardInterrupt):
-        pass
