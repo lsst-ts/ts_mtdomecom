@@ -1,1 +1,0 @@
-Extracted script to run the MTDome simulator.
