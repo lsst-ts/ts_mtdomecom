@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.6 (2025-11-12)
+===================
+
+Performance Enhancement
+-----------------------
+
+- Improved handling of missing louvers enabled file. (`OSW-1388 <https://rubinobs.atlassian.net//browse/OSW-1388>`_)
+
+
 v0.3.5 (2025-10-31)
 ===================
 
