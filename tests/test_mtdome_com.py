@@ -559,3 +559,13 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def handle_llc_status(self, status: dict[str, typing.Any]) -> None:
         self.llc_status = status
+
+    async def test_missing_louvers_file(self) -> None:
+        async with mtdomecom.MTDomeCom(
+            log=self.log,
+            config=types.SimpleNamespace(),
+            config_dir=CONFIG_DIR / "missing",
+            simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+        ) as self.mtdomecom_com:
+            assert len(self.mtdomecom_com.telemetry_callbacks) == 0
+            assert len(self.mtdomecom_com.louvers_enabled) == 0
