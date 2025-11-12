@@ -183,6 +183,10 @@ _COMMAND_QUEUE_PERIOD = 1.0
 # Interval to sleep [sec] while running periodic tasks.
 SLEEP_INTERVAL = 1.0
 
+# Louvers enabled constants.
+LOUVERS_ENABLED = "louvers_enabled"
+LOUVERS_ENABLED_FILENAME = f"{LOUVERS_ENABLED}.yaml"
+
 
 def get_louvers_enabled(config_dir: pathlib.Path) -> set[Louver]:
     """Load a set of all enabled louvers from the "louvers_enabled.yaml"
@@ -198,23 +202,18 @@ def get_louvers_enabled(config_dir: pathlib.Path) -> set[Louver]:
     -------
     set[Louver]
         Set with all enabled louvers.
-
-    Raises
-    ------
-    RuntimeError
-        In case the configuration file cannot be read.
     """
     louvers_enabled: set[Louver] = set()
 
-    louvers_enabled_config_file = config_dir / "louvers_enabled.yaml"
+    louvers_enabled_config_file = config_dir / LOUVERS_ENABLED_FILENAME
     try:
         with open(louvers_enabled_config_file, "r") as f:
             louvers_enabled_raw_data = f.read()
         louvers_enabled_data = yaml.safe_load(louvers_enabled_raw_data)
-        for louver_enabled in louvers_enabled_data["louvers_enabled"]:
+        for louver_enabled in louvers_enabled_data[LOUVERS_ENABLED]:
             louvers_enabled.add(Louver[louver_enabled])
-    except Exception as e:
-        raise RuntimeError(f"Could not parse data in {louvers_enabled_config_file} as a dict: {e!r}.")
+    except Exception:
+        logging.exception(f"Could not parse data in {louvers_enabled_config_file} as a dict.")
 
     return louvers_enabled
 
@@ -399,13 +398,6 @@ class MTDomeCom:
 
         if self.start_periodic_tasks:
             await self._start_periodic_tasks()
-
-        louver_states = []
-        for louver in Louver:
-            if louver in self.louvers_enabled:
-                louver_states.append(f"{louver.name} (index {louver.value + 1})")
-        louvers_message = "Louvers currently enabled: [" + ", ".join(louver_states) + "]"
-        self.log.info(louvers_message)
 
         self.log.info("connected")
 
