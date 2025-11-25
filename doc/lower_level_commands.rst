@@ -60,6 +60,8 @@ The units are `AstroPy Units`_.
     "setTemperature", "temperature", "double", "Celsius"
     "statusAMCS"
     "statusApSCS"
+    "statusCBCS"
+    "statusControl"
     "statusCSCS"
     "statusLCS"
     "statusLWSCS"

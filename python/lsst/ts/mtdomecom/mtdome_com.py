@@ -168,6 +168,7 @@ _STATUS_POKE_PERIODS = {
     LlcName.AMCS: 2,
     LlcName.APSCS: 5,
     LlcName.CBCS: 5,
+    LlcName.CONTROL: 5,
     LlcName.CSCS: 5,
     LlcName.LCS: 5,
     LlcName.LWSCS: 5,
@@ -314,6 +315,7 @@ class MTDomeCom:
             LlcName.AMCS: self.status_amcs,
             LlcName.APSCS: self.status_apscs,
             LlcName.CBCS: self.status_cbcs,
+            LlcName.CONTROL: self.status_control,
             LlcName.CSCS: self.status_cscs,
             LlcName.LCS: self.status_lcs,
             LlcName.LWSCS: self.status_lwscs,
@@ -1267,6 +1269,10 @@ class MTDomeCom:
         """CBCS status command."""
         await self.request_llc_status(LlcName.CBCS)
 
+    async def status_control(self) -> None:
+        """CONTROL status command."""
+        await self.request_llc_status(LlcName.CONTROL)
+
     async def status_cscs(self) -> None:
         """CSCS status command."""
         await self.request_llc_status(LlcName.CSCS)
@@ -1302,6 +1308,8 @@ class MTDomeCom:
         llc_name: `LlcName`
             The name of the lower level component.
         """
+        self.log.debug(f"Requesting status for {llc_name.value}.")
+
         # Assume that the corresponding callback exists. The check for that is
         # in _start_periodic_tasks where the telemetry task is scheduled.
         cb: typing.Callable = self.telemetry_callbacks[llc_name]

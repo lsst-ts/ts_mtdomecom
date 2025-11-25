@@ -34,6 +34,7 @@ __all__ = [
     "UNCONTROLLED_LLCS",
     "Brake",
     "CommandName",
+    "ControlMode",
     "InternalMotionState",
     "LlcName",
     "LlcNameDict",
@@ -167,6 +168,7 @@ class CommandName(enum.StrEnum):
     STATUS_AMCS = "statusAMCS"
     STATUS_APSCS = "statusApSCS"
     STATUS_CBCS = "statusCBCS"
+    STATUS_CONTROL = "statusControl"
     STATUS_CSCS = "statusCSCS"
     STATUS_LCS = "statusLCS"
     STATUS_LWSCS = "statusLWSCS"
@@ -179,12 +181,26 @@ class CommandName(enum.StrEnum):
     STOP_SHUTTER = "stopShutter"
 
 
+# TODO OSW-1491 Remove backward compatibility with XML 24.3
+class ControlMode(enum.IntEnum):
+    """Control mode.
+
+    This will be part of ts_xml starting with version 24.4.
+    """
+
+    Remote = 1
+    LocalPushButtons = 2
+    LocalKeba = 3
+    LocalEui = 4
+
+
 class LlcName(enum.StrEnum):
     """LLC names."""
 
     AMCS = "AMCS"
     APSCS = "ApSCS"
     CBCS = "CBCS"
+    CONTROL = "Control"
     CSCS = "CSCS"
     LCS = "LCS"
     LWSCS = "LWSCS"
@@ -313,8 +329,12 @@ SHUTTER_COMMANDS = [
     CommandName.STOP_SHUTTER,
 ]
 
+# TODO OSW-1491 Remove backward compatibility with XML 24.3
 # Dictionary to look up which LlcName is associated with which sub-system.
-LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}
+try:
+    LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}
+except AttributeError:
+    LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName if enum != LlcName.CONTROL}
 
 # Custom types used for configurable maximum values.
 MaxValueConfigType = dict[str, str | list[float]]
