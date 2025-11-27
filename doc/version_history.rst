@@ -8,6 +8,16 @@ Version History
 
 .. towncrier release notes start
 
+v0.3.7 (2025-11-27)
+===================
+
+New Features
+------------
+
+- Added the BRAKES_ENGAGED_STATES list and Brake enum. (`OSW-1408 <https://rubinobs.atlassian.net//browse/OSW-1408>`_)
+- Added support for the statusControl command. (`OSW-1408 <https://rubinobs.atlassian.net//browse/OSW-1408>`_)
+
+
 v0.3.6 (2025-11-12)
 ===================
 
