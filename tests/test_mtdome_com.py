@@ -308,6 +308,7 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 mtdomecom.LlcName.AMCS: self.handle_llc_status,
                 mtdomecom.LlcName.APSCS: self.handle_llc_status,
                 mtdomecom.LlcName.CBCS: self.handle_llc_status,
+                mtdomecom.LlcName.CONTROL: self.handle_llc_status,
                 mtdomecom.LlcName.CSCS: self.handle_llc_status,
                 mtdomecom.LlcName.LCS: self.handle_llc_status,
                 mtdomecom.LlcName.LWSCS: self.handle_llc_status,
