@@ -19,14 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from .amcs import *
-from .apscs import *
-from .base_mock_llc import *
-from .cbcs import *
-from .control import *
-from .cscs import *
-from .lcs import *
-from .lwscs import *
-from .moncs import *
-from .rad import *
-from .thcs import *
+import unittest
+
+from lsst.ts import mtdomecom
+
+START_TAI = 10001.0
+
+
+class ControlTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_control_status(self) -> None:
+        control = mtdomecom.mock_llc.ControlStatus()
+        await control.determine_status(current_tai=START_TAI)
+        assert control.llc_status["control_mode"] == "Remote"

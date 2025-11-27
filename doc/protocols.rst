@@ -176,6 +176,18 @@ This is the ApSCS status schema.
    :language: python
 
 
+This is the CBCS status schema.
+
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/cbcs_status.py
+   :language: python
+
+
+This is the Control status schema.
+
+.. literalinclude:: ../python/lsst/ts/mtdomecom/schema/control_status.py
+   :language: python
+
+
 This is the CSCS status schema.
 
 .. literalinclude:: ../python/lsst/ts/mtdomecom/schema/cscs_status.py
