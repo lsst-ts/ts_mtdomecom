@@ -94,6 +94,20 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 math.radians(exp_velocity),
             )
 
+            # Repeat to ensure that the command is not rejected because
+            # velocity!=0.0.
+            await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
+
+            # Setting the velocity to 0.0 should work as well.
+            exp_position = 329.0
+            exp_velocity = 0.0
+            await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
+
+            # Repeat to ensure that the command is rejected because
+            # velocity==0.0.
+            with pytest.raises(ValueError):
+                await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
+
     async def test_move_el(self) -> None:
         async with self.create_mtdomecom():
             exp_position = 29.0
@@ -570,3 +584,37 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
         ) as self.mtdomecom_com:
             assert len(self.mtdomecom_com.telemetry_callbacks) == 0
             assert len(self.mtdomecom_com.louvers_enabled) == 0
+
+    async def test_is_moveAz_same_as_current(self) -> None:
+        async with mtdomecom.MTDomeCom(
+            log=self.log,
+            config=types.SimpleNamespace(),
+            config_dir=CONFIG_DIR / "missing",
+            simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
+        ) as self.mtdomecom_com:
+            # The first call always returns False since the reference position
+            # and velocity are initialized to math.nan.
+            assert not self.mtdomecom_com.is_moveAz_same_as_current(
+                position=360.0 - mtdomecom.DOME_AZIMUTH_OFFSET, velocity=0.0
+            )
+            assert self.mtdomecom_com.is_moveAz_same_as_current(
+                position=360.0 - mtdomecom.DOME_AZIMUTH_OFFSET, velocity=0.0
+            )
+            assert self.mtdomecom_com.is_moveAz_same_as_current(
+                position=360.0 - mtdomecom.DOME_AZIMUTH_OFFSET - 0.2, velocity=0.0
+            )
+            assert self.mtdomecom_com.is_moveAz_same_as_current(
+                position=360.0 - mtdomecom.DOME_AZIMUTH_OFFSET,
+                velocity=mtdomecom.ZERO_VELOCITY_TOLERANCE / 10.0,
+            )
+            for position, velocity in [
+                (360.0 - mtdomecom.DOME_AZIMUTH_OFFSET, 0.1),
+                (360.0 - mtdomecom.DOME_AZIMUTH_OFFSET - 0.3, 0.0),
+                (
+                    360.0 - mtdomecom.DOME_AZIMUTH_OFFSET,
+                    mtdomecom.ZERO_VELOCITY_TOLERANCE * 10.0,
+                ),
+                (0.0, 0.0),
+                (0.0, 0.1),
+            ]:
+                assert not self.mtdomecom_com.is_moveAz_same_as_current(position=position, velocity=velocity)
