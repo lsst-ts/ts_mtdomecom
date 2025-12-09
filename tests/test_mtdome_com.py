@@ -31,6 +31,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+
 from lsst.ts import mtdomecom, utils
 from lsst.ts.xml.enums.MTDome import (
     MotionState,
@@ -40,7 +41,6 @@ from lsst.ts.xml.enums.MTDome import (
     PowerManagementMode,
     SubSystemId,
 )
-
 
 CONFIG_DIR = pathlib.Path(__file__).parent / "data"
 

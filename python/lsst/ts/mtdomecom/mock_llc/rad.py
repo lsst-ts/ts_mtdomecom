@@ -24,6 +24,7 @@ __all__ = ["RadStatus"]
 import logging
 
 import numpy as np
+
 from lsst.ts.xml.enums.MTDome import MotionState, RadLockingPinState
 
 from ..constants import RAD_NUM_DOORS, RAD_NUM_LIMIT_SWITCHES, RAD_NUM_LOCKING_PINS

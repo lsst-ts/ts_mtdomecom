@@ -24,6 +24,7 @@ __all__ = ["MoncsStatus"]
 import logging
 
 import numpy as np
+
 from lsst.ts.xml.enums.MTDome import MotionState
 
 from ..constants import MON_NUM_SENSORS

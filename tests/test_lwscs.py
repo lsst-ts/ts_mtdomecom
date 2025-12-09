@@ -23,10 +23,11 @@ import math
 import unittest
 
 import pytest
+from utils_for_tests import ExpectedState
+
 from lsst.ts import mtdomecom
 from lsst.ts.mtdomecom.power_management.power_draw_constants import LWS_POWER_DRAW
 from lsst.ts.xml.enums.MTDome import MotionState
-from utils_for_tests import ExpectedState
 
 START_TAI = 10001.0
 MIN_POSITION = 0

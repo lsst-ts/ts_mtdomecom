@@ -24,8 +24,9 @@ import unittest
 from unittest import mock
 
 import pytest
-from lsst.ts import mtdomecom
 from utils_for_tests import CoolDownTestData, SlipRingTestData
+
+from lsst.ts import mtdomecom
 
 
 class SlipRingTestCase(unittest.IsolatedAsyncioTestCase):

@@ -26,6 +26,7 @@ import math
 import random
 
 import numpy as np
+
 from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
 
 from ..constants import (

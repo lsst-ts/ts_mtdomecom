@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 
 import yaml
+
 from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import (
     Louver,
