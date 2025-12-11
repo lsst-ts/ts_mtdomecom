@@ -53,7 +53,6 @@ from .mock_llc import (
     ThcsStatus,
 )
 
-
 # Commands for the rotating part of the MTDome.
 ROTATING_COMMANDS = CSCS_COMMANDS + EL_COMMANDS + LOUVERS_COMMANDS + RAD_COMMANDS + SHUTTER_COMMANDS
 

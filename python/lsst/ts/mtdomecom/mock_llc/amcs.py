@@ -25,6 +25,7 @@ import logging
 import math
 
 import numpy as np
+
 from lsst.ts import utils
 from lsst.ts.xml.enums.MTDome import MotionState, OnOff
 

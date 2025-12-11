@@ -24,6 +24,7 @@ __all__ = [
     "CSCS_COMMANDS",
     "EL_COMMANDS",
     "LOUVERS_COMMANDS",
+    "POSITION_TOLERANCE",
     "POWER_MANAGEMENT_COMMANDS",
     "RAD_COMMANDS",
     "SHUTTER_COMMANDS",
@@ -32,6 +33,7 @@ __all__ = [
     "STOP_LOUVERS",
     "STOP_SHUTTER",
     "UNCONTROLLED_LLCS",
+    "ZERO_VELOCITY_TOLERANCE",
     "Brake",
     "CommandName",
     "ControlMode",
@@ -339,6 +341,10 @@ except AttributeError:
 # Custom types used for configurable maximum values.
 MaxValueConfigType = dict[str, str | list[float]]
 MaxValuesConfigType = list[MaxValueConfigType]
+
+# Tolerances for the azimuth motion. The position tolerance is from LTS-97.
+ZERO_VELOCITY_TOLERANCE = 1e-7  # deg /sec
+POSITION_TOLERANCE = 0.25  # deg
 
 # Commands under power management.
 POWER_MANAGEMENT_COMMANDS = [
