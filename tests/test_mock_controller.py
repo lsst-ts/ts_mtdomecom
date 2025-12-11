@@ -27,6 +27,7 @@ import typing
 
 import numpy as np
 import pytest
+
 from lsst.ts import mtdomecom, tcpip, utils
 from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OpenClose, OperationalMode
 

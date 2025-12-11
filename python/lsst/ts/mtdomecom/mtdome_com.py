@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 
 import yaml
+
 from lsst.ts import tcpip, utils
 from lsst.ts.xml.enums.MTDome import (
     Louver,
@@ -53,6 +54,8 @@ from .constants import (
     LCS_NUM_MOTORS_PER_LOUVER,
 )
 from .enums import (
+    POSITION_TOLERANCE,
+    ZERO_VELOCITY_TOLERANCE,
     CommandName,
     LlcName,
     MaxValuesConfigType,
@@ -236,6 +239,22 @@ class CommandTime:
     tai: float
 
 
+@dataclass
+class MoveAzCommandData:
+    """Class representing the data for a moveAz command.
+
+    Attributes
+    ----------
+    position : `float`
+        The position to move to [deg].
+    velocity : `float`
+        The velocity at which the target position is moving [deg/sec].
+    """
+
+    position: float = math.nan
+    velocity: float = math.nan
+
+
 class MTDomeCom:
     """TCP/IP interface to the MTDome controller.
 
@@ -364,6 +383,12 @@ class MTDomeCom:
         # Load louvers config file.
         self.louvers_enabled = get_louvers_enabled(config_dir)
 
+        # Keep track of the parameters of the current moveAz command issued so
+        # repetition of the same command can be avoided. This is necessary in
+        # case the dome repeatedly is instructed to move to the same position
+        # with velocity == 0.0 since that may lead to a 360º rotation.
+        self.current_moveAz_command = MoveAzCommandData()
+
         self.log.info("MTDomeCom constructed.")
 
     @property
@@ -400,6 +425,8 @@ class MTDomeCom:
 
         if self.start_periodic_tasks:
             await self._start_periodic_tasks()
+
+        self.current_moveAz_command = MoveAzCommandData()
 
         self.log.info("connected")
 
@@ -779,6 +806,60 @@ class MTDomeCom:
         async with self._non_status_command_lock:
             return self._has_non_status_command
 
+    def is_moveAz_same_as_current(self, position: float, velocity: float) -> bool:
+        """Is the received moveAz command the same as the current moveAz
+        command or not.
+
+        Parameters
+        ----------
+        position : `float`
+            The target position to move to.
+        velocity : `float`
+            The velocity at which the target position is moving.
+
+        Returns
+        -------
+        bool
+            True if the issues moveAz command is the same as the current moveAz
+            command or False otherwise.
+
+        Notes
+        -----
+        The moveAz command is regarded to be the same as the current one if and
+        only if the position is the same and the velocity is 0.0. In all other
+        cases the command is regarded not to be the same. This is important
+        because, if the velocity != 0.0, the dome is following a moving target
+        and the chance of it being at exactly the commanded position with the
+        commanded velocity can be considered zero and therefore the moveAz
+        command has to be sent to the dome.
+
+        The very first moveAz command, when connecting to the low-level
+        controller, always is executed, even if the position matches the
+        current position of the dome. This may lead to a full 360º rotation
+        by the dome but it is a small risk.
+
+        The tolerance for the position is 0.25 deg as specified in LTS-97. The
+        tolerance for the velocity is set to a small but non-zero value. See
+        `lsst.ts.mtdomecom.enums` for more information.
+        """
+        if (
+            math.isclose(velocity, 0.0, abs_tol=ZERO_VELOCITY_TOLERANCE)
+            and math.isclose(
+                position,
+                self.current_moveAz_command.position,
+                abs_tol=POSITION_TOLERANCE,
+            )
+            and math.isclose(
+                velocity,
+                self.current_moveAz_command.velocity,
+                abs_tol=ZERO_VELOCITY_TOLERANCE,
+            )
+        ):
+            return True
+        self.current_moveAz_command.position = position
+        self.current_moveAz_command.velocity = velocity
+        return False
+
     async def move_az(self, position: float, velocity: float) -> None:
         """Move AZ.
 
@@ -799,12 +880,24 @@ class MTDomeCom:
         self.log.debug(f"move_az: {position=!s}, {velocity=!s}")
         # Compensate for the dome azimuth offset.
         dome_position = utils.angle_wrap_nonnegative(position + DOME_AZIMUTH_OFFSET).degree
-        await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.MOVE_AZ,
-            position=math.radians(dome_position),
-            velocity=math.radians(velocity),
-        )
+        if not self.is_moveAz_same_as_current(position=position, velocity=velocity):
+            await self.update_status_of_non_status_command(True)
+            await self.write_then_read_reply(
+                command=CommandName.MOVE_AZ,
+                position=math.radians(dome_position),
+                velocity=math.radians(velocity),
+            )
+        else:
+            exception = ValueError(
+                f"Command moveAz not executed because dome already in position {position} "
+                f"and at velocity {velocity}."
+            )
+            self.communication_error_report = {
+                "command_name": CommandName.MOVE_AZ,
+                "exception": exception,
+                "response_code": ResponseCode.INCORRECT_PARAMETERS,
+            }
+            raise exception
 
     async def move_el(self, position: float) -> None:
         """Move El.

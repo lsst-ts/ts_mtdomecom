@@ -24,6 +24,7 @@ import unittest
 
 import numpy as np
 import pytest
+
 from lsst.ts import mtdomecom
 from lsst.ts.mtdomecom.power_management.power_draw_constants import LOUVERS_POWER_DRAW
 from lsst.ts.xml.enums.MTDome import MotionState

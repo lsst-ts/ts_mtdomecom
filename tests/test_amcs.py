@@ -23,6 +23,8 @@ import math
 import unittest
 
 import pytest
+from utils_for_tests import ExpectedState
+
 from lsst.ts import mtdomecom
 from lsst.ts.mtdomecom.constants import (
     AMCS_CURRENT_PER_MOTOR_CRAWLING,
@@ -30,7 +32,6 @@ from lsst.ts.mtdomecom.constants import (
     AMCS_NUM_MOTORS,
 )
 from lsst.ts.xml.enums.MTDome import MotionState
-from utils_for_tests import ExpectedState
 
 # The maximum AZ rotation speed (deg/s)
 MAX_SPEED = 4.0
