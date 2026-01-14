@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = ["ControlStatus"]
+__all__ = ["LlcStatus"]
 
 import logging
 
@@ -27,8 +27,8 @@ from ..enums import ControlMode
 from .base_mock_llc import DEFAULT_MESSAGES, BaseMockStatus
 
 
-class ControlStatus(BaseMockStatus):
-    """Represents the status of the control system in simulation mode."""
+class LlcStatus(BaseMockStatus):
+    """Represents the status of the LLC system in simulation mode."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -36,7 +36,7 @@ class ControlStatus(BaseMockStatus):
 
         # Variables holding the status of the mock control system.
         self.messages = DEFAULT_MESSAGES
-        self.control_state = ControlMode.Remote
+        self.control_state = ControlMode.remote
 
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in
@@ -53,4 +53,4 @@ class ControlStatus(BaseMockStatus):
             },
             "control_mode": self.control_state.name,
         }
-        self.log.debug(f"control_state = {self.llc_status}")
+        self.log.debug(f"llc_state = {self.llc_status}")
