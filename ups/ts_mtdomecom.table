@@ -4,5 +4,6 @@
 #   the "base" package.
 setupRequired(ts_tcpip)
 setupRequired(ts_utils)
+setupRequired(ts_xml)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)

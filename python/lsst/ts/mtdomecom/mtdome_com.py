@@ -171,9 +171,9 @@ _STATUS_POKE_PERIODS = {
     LlcName.AMCS: 2,
     LlcName.APSCS: 5,
     LlcName.CBCS: 5,
-    LlcName.CONTROL: 5,
     LlcName.CSCS: 5,
     LlcName.LCS: 5,
+    LlcName.LLC: 5,
     LlcName.LWSCS: 5,
     LlcName.MONCS: 5,
     LlcName.RAD: 5,
@@ -334,9 +334,9 @@ class MTDomeCom:
             LlcName.AMCS: self.status_amcs,
             LlcName.APSCS: self.status_apscs,
             LlcName.CBCS: self.status_cbcs,
-            LlcName.CONTROL: self.status_control,
             LlcName.CSCS: self.status_cscs,
             LlcName.LCS: self.status_lcs,
+            LlcName.LLC: self.status_llc,
             LlcName.LWSCS: self.status_lwscs,
             LlcName.MONCS: self.status_moncs,
             LlcName.RAD: self.status_rad,
@@ -715,6 +715,8 @@ class MTDomeCom:
         command_id = next(self._index_iter)
         self.commands_without_reply[command_id] = CommandTime(command=command, tai=utils.current_tai())
         command_name = command.value
+        if command_name == "statusControl":
+            command_name = "statusLLC"
         command_dict = {
             "commandId": command_id,
             "command": command_name,
@@ -1362,10 +1364,6 @@ class MTDomeCom:
         """CBCS status command."""
         await self.request_llc_status(LlcName.CBCS)
 
-    async def status_control(self) -> None:
-        """CONTROL status command."""
-        await self.request_llc_status(LlcName.CONTROL)
-
     async def status_cscs(self) -> None:
         """CSCS status command."""
         await self.request_llc_status(LlcName.CSCS)
@@ -1373,6 +1371,10 @@ class MTDomeCom:
     async def status_lcs(self) -> None:
         """LCS status command."""
         await self.request_llc_status(LlcName.LCS)
+
+    async def status_llc(self) -> None:
+        """LLC status command."""
+        await self.request_llc_status(LlcName.LLC)
 
     async def status_lwscs(self) -> None:
         """LWSCS status command."""

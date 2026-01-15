@@ -26,8 +26,8 @@ from lsst.ts import mtdomecom
 START_TAI = 10001.0
 
 
-class ControlTestCase(unittest.IsolatedAsyncioTestCase):
-    async def test_control_status(self) -> None:
-        control = mtdomecom.mock_llc.ControlStatus()
-        await control.determine_status(current_tai=START_TAI)
-        assert control.llc_status["control_mode"] == "Remote"
+class LlcTestCase(unittest.IsolatedAsyncioTestCase):
+    async def test_llc_status(self) -> None:
+        llc = mtdomecom.mock_llc.LlcStatus()
+        await llc.determine_status(current_tai=START_TAI)
+        assert llc.llc_status["control_mode"] == "remote"
