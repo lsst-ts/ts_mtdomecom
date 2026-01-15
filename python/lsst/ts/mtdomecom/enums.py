@@ -170,9 +170,9 @@ class CommandName(enum.StrEnum):
     STATUS_AMCS = "statusAMCS"
     STATUS_APSCS = "statusApSCS"
     STATUS_CBCS = "statusCBCS"
-    STATUS_CONTROL = "statusControl"
     STATUS_CSCS = "statusCSCS"
     STATUS_LCS = "statusLCS"
+    STATUS_LLC = "statusLLC"
     STATUS_LWSCS = "statusLWSCS"
     STATUS_MONCS = "statusMonCS"
     STATUS_RAD = "statusRAD"
@@ -190,10 +190,10 @@ class ControlMode(enum.IntEnum):
     This will be part of ts_xml starting with version 24.4.
     """
 
-    Remote = 1
-    LocalPushButtons = 2
-    LocalKeba = 3
-    LocalEui = 4
+    remote = 1
+    local_pushbuttons = 2
+    local_keba = 3
+    local_eui = 4
 
 
 class LlcName(enum.StrEnum):
@@ -202,9 +202,9 @@ class LlcName(enum.StrEnum):
     AMCS = "AMCS"
     APSCS = "ApSCS"
     CBCS = "CBCS"
-    CONTROL = "Control"
     CSCS = "CSCS"
     LCS = "LCS"
+    LLC = "LLC"
     LWSCS = "LWSCS"
     MONCS = "MonCS"
     OBC = "OBC"
@@ -336,7 +336,7 @@ SHUTTER_COMMANDS = [
 try:
     LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}
 except AttributeError:
-    LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName if enum != LlcName.CONTROL}
+    LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName if enum != LlcName.LLC}
 
 # Custom types used for configurable maximum values.
 MaxValueConfigType = dict[str, str | list[float]]

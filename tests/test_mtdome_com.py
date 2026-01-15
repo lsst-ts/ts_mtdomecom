@@ -322,9 +322,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 mtdomecom.LlcName.AMCS: self.handle_llc_status,
                 mtdomecom.LlcName.APSCS: self.handle_llc_status,
                 mtdomecom.LlcName.CBCS: self.handle_llc_status,
-                mtdomecom.LlcName.CONTROL: self.handle_llc_status,
                 mtdomecom.LlcName.CSCS: self.handle_llc_status,
                 mtdomecom.LlcName.LCS: self.handle_llc_status,
+                mtdomecom.LlcName.LLC: self.handle_llc_status,
                 mtdomecom.LlcName.LWSCS: self.handle_llc_status,
                 mtdomecom.LlcName.MONCS: self.handle_llc_status,
                 mtdomecom.LlcName.RAD: self.handle_llc_status,
@@ -338,10 +338,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 telemetry_callbacks=telemetry_callbacks,
             )
             await self.mtdomecom_com.connect()
-            # OBC statuses are not reported yet.
-            while len(self.mtdomecom_com.lower_level_status) < len(mtdomecom.LlcName) - 1:
+            while len(self.mtdomecom_com.lower_level_status) < len(telemetry_callbacks):
                 await asyncio.sleep(0.1)
-            assert len(self.mtdomecom_com.lower_level_status) == len(mtdomecom.LlcName) - 1
+            assert len(self.mtdomecom_com.lower_level_status) == len(telemetry_callbacks)
 
     async def test_request_llc_status(self) -> None:
         async with self.create_mtdomecom():
