@@ -272,6 +272,8 @@ class MTDomeCom:
         The simulation mode to use. Defaults to `NORMAL_OPERATIONS`.
     telemetry_callbacks : `dict`[`LlcName`, `typing.Callable`]
         List of telemetry callback coroutines to use. Defaults to `None`.
+    reject_small_azimuth_motions : `bool`
+        Reject small azimuth motions or not? Defaults to `False`.
     start_periodic_tasks : `bool`
         Start the periodic tasks or not. Defaults to `True`. Unit tests may set
         this to `False`.
@@ -279,7 +281,8 @@ class MTDomeCom:
         Is there a communication error with the rotating part (True) or not
         (False)? This is for unit tests only. The default is False.
     timeout_error : `bool`
-        Do command replies timeout of not? The default is False.
+        Do command replies timeout of not? This is for unit tests only. The
+        default is False.
     """
 
     _index_iter = utils.index_generator()
@@ -291,6 +294,7 @@ class MTDomeCom:
         config_dir: pathlib.Path,
         simulation_mode: ValidSimulationMode = ValidSimulationMode.NORMAL_OPERATIONS,
         telemetry_callbacks: (dict[LlcName, typing.Callable[[dict[str, typing.Any]], None]] | None) = None,
+        reject_small_azimuth_motions: bool = False,
         start_periodic_tasks: bool = True,
         communication_error: bool = False,
         timeout_error: bool = False,
@@ -388,6 +392,7 @@ class MTDomeCom:
         # case the dome repeatedly is instructed to move to the same position
         # with velocity == 0.0 since that may lead to a 360º rotation.
         self.current_moveAz_command = MoveAzCommandData()
+        self.reject_small_azimuth_motions = reject_small_azimuth_motions
 
         self.log.info("MTDomeCom constructed.")
 
@@ -822,11 +827,15 @@ class MTDomeCom:
         Returns
         -------
         bool
-            True if the issues moveAz command is the same as the current moveAz
-            command or False otherwise.
+            False if `reject_small_azimuth_motions` is False,  True if the
+            issued moveAz command is the same as the current moveAz command or
+            False otherwise.
 
         Notes
         -----
+        If `reject_small_azimuth_motions` is False, this method will always
+        return False.
+
         The moveAz command is regarded to be the same as the current one if and
         only if the position is the same and the velocity is 0.0. In all other
         cases the command is regarded not to be the same. This is important
@@ -838,13 +847,15 @@ class MTDomeCom:
         The very first moveAz command, when connecting to the low-level
         controller, always is executed, even if the position matches the
         current position of the dome. This may lead to a full 360º rotation
-        by the dome but it is a small risk.
+        by the dome, but it is a small risk.
 
         The tolerance for the position is 0.25 deg as specified in LTS-97. The
         tolerance for the velocity is set to a small but non-zero value. See
         `lsst.ts.mtdomecom.enums` for more information.
         """
-        if (
+        if not self.reject_small_azimuth_motions:
+            return False
+        elif (
             math.isclose(velocity, 0.0, abs_tol=ZERO_VELOCITY_TOLERANCE)
             and math.isclose(
                 position,

@@ -16,7 +16,7 @@ github_url_key = "source_code"
 extensions = ["sphinx-jsonschema"]
 
 [sphinx.intersphinx.projects]
-ts-xml = "https://ts-tcpip.lsst.io"
-ts-xml = "https://ts-utils.lsst.io"
+ts-tcpip = "https://ts-tcpip.lsst.io"
+ts-utils = "https://ts-utils.lsst.io"
 ts-xml = "https://ts-xml.lsst.io"
 python = "https://docs.python.org/3.13/"

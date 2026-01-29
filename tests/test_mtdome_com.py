@@ -103,8 +103,13 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             exp_velocity = 0.0
             await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
 
-            # Repeat to ensure that the command is rejected because
-            # velocity==0.0.
+            # Repeat because the command should not be rejected.
+            await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
+
+            # Now reject the command. The first time it will pass because
+            # MTDomecom has not yet tracked the previous commands.
+            self.mtdomecom_com.reject_small_azimuth_motions = True
+            await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
             with pytest.raises(ValueError):
                 await self.mtdomecom_com.move_az(position=exp_position, velocity=exp_velocity)
 
@@ -591,6 +596,8 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             config_dir=CONFIG_DIR / "missing",
             simulation_mode=mtdomecom.ValidSimulationMode.SIMULATION_WITH_MOCK_CONTROLLER,
         ) as self.mtdomecom_com:
+            self.mtdomecom_com.reject_small_azimuth_motions = True
+
             # The first call always returns False since the reference position
             # and velocity are initialized to math.nan.
             assert not self.mtdomecom_com.is_moveAz_same_as_current(
