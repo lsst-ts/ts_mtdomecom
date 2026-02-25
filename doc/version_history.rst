@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.4.0 (2026-02-25)
+===================
+
+Other Changes and Additions
+---------------------------
+
+- Removed backward compatibility with XML 24.3. (`OSW-1491 <https://rubinobs.atlassian.net//browse/OSW-1491>`_)
+
+
 v0.3.10 (2026-01-29)
 ====================
 
