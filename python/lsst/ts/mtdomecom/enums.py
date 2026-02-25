@@ -34,9 +34,7 @@ __all__ = [
     "STOP_SHUTTER",
     "UNCONTROLLED_LLCS",
     "ZERO_VELOCITY_TOLERANCE",
-    "Brake",
     "CommandName",
-    "ControlMode",
     "InternalMotionState",
     "LlcName",
     "LlcNameDict",
@@ -69,57 +67,6 @@ class InternalMotionState(enum.IntEnum):
 # Dict holding translations from motion states, that the lower level
 # controllers can have, to MotionState.
 motion_state_translations = {InternalMotionState.STATIONARY.name: MotionState.STOPPED_BRAKED}
-
-
-# TODO OSW-1491 Remove backward compatibility with XML 24.3
-class Brake(enum.IntEnum):
-    """Engagable brakes.
-
-    Each item represents multiple brakes that are always engaged at the same
-    time. This will be part of ts_xml starting with version 24.4.
-    """
-
-    AMCS = 1
-    APSCS_LEFT_DOOR = 2
-    APSCS_RIGHT_DOOR = 3
-    LWSCS = 4
-    LOUVER_A1 = 5
-    LOUVER_A2 = 6
-    LOUVER_B1 = 7
-    LOUVER_B2 = 8
-    LOUVER_B3 = 9
-    LOUVER_C1 = 10
-    LOUVER_C2 = 11
-    LOUVER_C3 = 12
-    LOUVER_D1 = 13
-    LOUVER_D2 = 14
-    LOUVER_D3 = 15
-    LOUVER_E1 = 16
-    LOUVER_E2 = 17
-    LOUVER_E3 = 18
-    LOUVER_F1 = 19
-    LOUVER_F2 = 20
-    LOUVER_F3 = 21
-    LOUVER_G1 = 22
-    LOUVER_G2 = 23
-    LOUVER_G3 = 24
-    LOUVER_H1 = 25
-    LOUVER_H2 = 26
-    LOUVER_H3 = 27
-    LOUVER_I1 = 28
-    LOUVER_I2 = 29
-    LOUVER_I3 = 30
-    LOUVER_L1 = 31
-    LOUVER_L2 = 32
-    LOUVER_L3 = 33
-    LOUVER_M1 = 34
-    LOUVER_M2 = 35
-    LOUVER_M3 = 36
-    LOUVER_N1 = 37
-    LOUVER_N2 = 38
-    CSCS = 39
-    RAD_LEFT_DOOR = 40
-    RAD_RIGHT_DOOR = 41
 
 
 class CommandName(enum.StrEnum):
@@ -181,19 +128,6 @@ class CommandName(enum.StrEnum):
     STOP_EL = "stopEl"
     STOP_LOUVERS = "stopLouvers"
     STOP_SHUTTER = "stopShutter"
-
-
-# TODO OSW-1491 Remove backward compatibility with XML 24.3
-class ControlMode(enum.IntEnum):
-    """Control mode.
-
-    This will be part of ts_xml starting with version 24.4.
-    """
-
-    remote = 1
-    local_pushbuttons = 2
-    local_keba = 3
-    local_eui = 4
 
 
 class LlcName(enum.StrEnum):
@@ -331,12 +265,7 @@ SHUTTER_COMMANDS = [
     CommandName.STOP_SHUTTER,
 ]
 
-# TODO OSW-1491 Remove backward compatibility with XML 24.3
-# Dictionary to look up which LlcName is associated with which sub-system.
-try:
-    LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}
-except AttributeError:
-    LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName if enum != LlcName.LLC}
+LlcNameDict = {getattr(SubSystemId, enum.name): enum.value for enum in LlcName}
 
 # Custom types used for configurable maximum values.
 MaxValueConfigType = dict[str, str | list[float]]
