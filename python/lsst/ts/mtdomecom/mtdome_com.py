@@ -143,7 +143,7 @@ OPERATIONAL_MODE_COMMANDS_FOR_COMMISSIONING = {
 
 # The values of these keys need to be compensated for the dome azimuth offset
 # in the AMCS status. Note that these keys are shared with LWSCS so they can be
-# added to _KEYS_IN_RADIANS to avoid duplication but this also means that an
+# added to _KEYS_IN_RADIANS to avoid duplication. But this also means that an
 # additional check for the AMCS lower level component needs to be done when
 # applying the offset correction. That is a trade-off I can live with.
 _AMCS_KEYS_OFFSET = {
@@ -1205,7 +1205,7 @@ class MTDomeCom:
     async def reset_drives_az(self, reset: list[int]) -> None:
         """Reset one or more AZ drives.
 
-        This is necessary when exiting from FAULT state without going to
+        This is necessary when exiting from FAULT state without switching to
         Degraded Mode since the drives don't reset themselves.
 
         Parameters
@@ -1220,7 +1220,7 @@ class MTDomeCom:
     async def reset_drives_shutter(self, reset: list[int]) -> None:
         """Reset one or more Aperture Shutter drives.
 
-        This is necessary when exiting from FAULT state without going to
+        This is necessary when exiting from FAULT state without switching to
         Degraded Mode since the drives don't reset themselves.
 
         Parameters
@@ -1235,7 +1235,7 @@ class MTDomeCom:
     async def reset_drives_louvers(self, reset: list[int]) -> None:
         """Reset one or more Louver drives.
 
-        This is necessary when exiting from FAULT state without going to
+        This is necessary when exiting from FAULT state without switching to
         Degraded Mode since the drives don't reset themselves.
 
         Parameters
