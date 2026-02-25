@@ -23,7 +23,8 @@ __all__ = ["LlcStatus"]
 
 import logging
 
-from ..enums import ControlMode
+from lsst.ts.xml.enums.MTDome import ControlMode
+
 from .base_mock_llc import DEFAULT_MESSAGES, BaseMockStatus
 
 
