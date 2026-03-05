@@ -95,6 +95,7 @@ class CommandName(enum.StrEnum):
     OPEN_SHUTTER = "openShutter"
     PARK = "park"
     RESET_DRIVES_AZ = "resetDrivesAz"
+    RESET_DRIVES_EL = "resetDrivesEl"
     RESET_DRIVES_LOUVERS = "resetDrivesLouvers"
     RESET_DRIVES_SHUTTER = "resetDrivesShutter"
     RESTORE = "restore"

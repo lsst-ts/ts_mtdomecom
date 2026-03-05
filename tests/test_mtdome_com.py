@@ -249,6 +249,15 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 == mtdomecom.InternalMotionState.STATIONARY.name
             )
 
+            self.mtdomecom_com.mock_ctrl.lwscs.drives_in_error_state[0] = True
+            self.mtdomecom_com.mock_ctrl.lwscs.current_state = MotionState.ERROR.name
+            await self.mtdomecom_com.exit_fault(sub_system_ids=SubSystemId.LWSCS)
+            assert not self.mtdomecom_com.mock_ctrl.lwscs.drives_in_error_state[0]
+            assert (
+                self.mtdomecom_com.mock_ctrl.lwscs.current_state
+                == mtdomecom.InternalMotionState.STATIONARY.name
+            )
+
     async def test_set_operational_mode(self) -> None:
         async with self.create_mtdomecom():
             assert self.mtdomecom_com.mock_ctrl.amcs.operational_mode == OperationalMode.NORMAL

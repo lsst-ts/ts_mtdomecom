@@ -52,6 +52,7 @@ from .constants import (
     DOME_AZIMUTH_OFFSET,
     LCS_NUM_LOUVERS,
     LCS_NUM_MOTORS_PER_LOUVER,
+    LWSCS_NUM_MOTORS,
 )
 from .enums import (
     POSITION_TOLERANCE,
@@ -94,6 +95,7 @@ COMMANDS_DISABLED_FOR_COMMISSIONING = {
     CommandName.GO_STATIONARY_EL,
     CommandName.INFLATE,
     CommandName.MOVE_EL,
+    CommandName.RESET_DRIVES_EL,
     CommandName.SET_TEMPERATURE,
     CommandName.STOP_EL,
 }
@@ -1121,16 +1123,15 @@ class MTDomeCom:
                     case SubSystemId.THCS:
                         await self.exit_fault_thermal()
                     case _:
-                        self.log.warning(f"Ignoring reset_drives for sub_system_id={sub_system_id.name}.")
+                        self.log.warning(f"Ignoring exit_fault for sub_system_id={sub_system_id.name}.")
 
     async def exit_fault_az(self) -> None:
         """Indicate that all AMCS hardware errors have been resolved."""
         # To help the operators minimize the amount of commands to send, we
         # always send resetDrives commands.
         az_reset = [1] * AMCS_NUM_MOTORS
-        self.log.debug(f"reset_drives_az: {az_reset=!s}")
-        await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(command=CommandName.RESET_DRIVES_AZ, reset=az_reset)
+        await self.reset_drives_az(az_reset)
+
         self.log.debug("exit_fault_az")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_AZ)
@@ -1140,31 +1141,30 @@ class MTDomeCom:
         # To help the operators minimize the amount of commands to send, we
         # always send resetDrives commands.
         aps_reset = [1] * APSCS_NUM_SHUTTERS * APSCS_NUM_MOTORS_PER_SHUTTER
-        self.log.debug(f"reset_drives_shutter: {aps_reset=!s}")
-        await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.RESET_DRIVES_SHUTTER,
-            reset=aps_reset,
-        )
+        await self.reset_drives_shutter(aps_reset)
+
         self.log.debug("exit_fault_shutter")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_SHUTTER)
 
     async def exit_fault_louvers(self) -> None:
         """Indicate that all LCS hardware errors have been resolved."""
+        # To help the operators minimize the amount of commands to send, we
+        # always send resetDrives commands.
         louvers_reset = [1] * LCS_NUM_LOUVERS * LCS_NUM_MOTORS_PER_LOUVER
-        self.log.debug(f"reset_drives_louvers: {louvers_reset=!s}")
-        await self.update_status_of_non_status_command(True)
-        await self.write_then_read_reply(
-            command=CommandName.RESET_DRIVES_LOUVERS,
-            reset=louvers_reset,
-        )
+        await self.reset_drives_louvers(louvers_reset)
+
         self.log.debug("exit_fault_louvers")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_LOUVERS)
 
     async def exit_fault_el(self) -> None:
         """Indicate that all LWSCS hardware errors have been resolved."""
+        # To help the operators minimize the amount of commands to send, we
+        # always send resetDrives commands.
+        el_reset = [1] * LWSCS_NUM_MOTORS
+        await self.reset_drives_el(el_reset)
+
         self.log.debug("exit_fault_el")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.EXIT_FAULT_EL)
@@ -1216,6 +1216,21 @@ class MTDomeCom:
         self.log.debug(f"reset_drives_az: {reset=}")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.RESET_DRIVES_AZ, reset=reset)
+
+    async def reset_drives_el(self, reset: list[int]) -> None:
+        """Reset one or more El drives.
+
+        This is necessary when exiting from FAULT state without switching to
+        Degraded Mode since the drives don't reset themselves.
+
+        Parameters
+        ----------
+        reset : `list`[`int`]
+            List of indices of the motors to reset.
+        """
+        self.log.debug(f"reset_drives_el: {reset=}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(command=CommandName.RESET_DRIVES_EL, reset=reset)
 
     async def reset_drives_shutter(self, reset: list[int]) -> None:
         """Reset one or more Aperture Shutter drives.
