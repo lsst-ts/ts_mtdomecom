@@ -132,6 +132,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         # * No arguments, if `has_argument` False.
         # * The argument as a string, if `has_argument` is True.
         self.dispatch_dict: dict[str, typing.Callable] = {
+            CommandName.CALIBRATE_EL: self.calibrate_el,
             CommandName.CLOSE_LOUVERS: self.close_louvers,
             CommandName.CLOSE_SHUTTER: self.close_shutter,
             CommandName.CONFIG: self.config,
@@ -911,6 +912,19 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         """
         assert self.amcs is not None
         return await self.amcs.set_zero_az(self.current_tai)
+
+    async def calibrate_el(self) -> float:
+        """Move both EL drives towards zero until the limit switches engage.
+
+        This may be necessary to avoid skew in the light/windscreen panels.
+
+        Returns
+        -------
+        `float`
+            The estimated duration of the execution of the command.
+        """
+        assert self.lwscs is not None
+        return await self.lwscs.calibrate_el(self.current_tai)
 
     async def home(self, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.

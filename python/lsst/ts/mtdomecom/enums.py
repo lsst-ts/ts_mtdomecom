@@ -72,6 +72,7 @@ motion_state_translations = {InternalMotionState.STATIONARY.name: MotionState.ST
 class CommandName(enum.StrEnum):
     """Command names."""
 
+    CALIBRATE_EL = "calibrateEl"
     CLOSE_LOUVERS = "closeLouvers"
     CLOSE_SHUTTER = "closeShutter"
     CONFIG = "config"

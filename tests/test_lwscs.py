@@ -330,6 +330,42 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
             command=mtdomecom.CommandName.STOP_EL,
         )
 
+    async def test_calibrate_el(self) -> None:
+        """Test the LWSCS when moving from position 0 to
+        position 10 and execute the calibrate_el command.
+        """
+        start_position = 0.0
+        start_tai = START_TAI
+        min_position = MIN_POSITION
+        max_position = MAX_POSITION
+        max_speed = 3.5
+        target_position = 10.0
+        velocity = 3.5
+        expected_duration = (target_position - start_position) / velocity
+        expected_states = [
+            ExpectedState(1.0, 3.5, velocity, MotionState.MOVING),
+        ]
+        await self.verify_lwscs(
+            command="move",
+            start_position=start_position,
+            min_position=min_position,
+            max_position=max_position,
+            target_position=target_position,
+            max_speed=max_speed,
+            crawl_velocity=0.0,
+            expected_duration=expected_duration,
+            expected_states=expected_states,
+            start_tai=start_tai,
+        )
+
+        await self.lwscs.calibrate_el(start_tai=2.0)
+        await self.verify_lwscs_state(
+            tai=2.1,
+            expected_position=0.0,
+            expected_velocity=0.0,
+            expected_motion_state=mtdomecom.InternalMotionState.STATIONARY,
+        )
+
     async def test_stationary(self) -> None:
         """Test the LWSCS when moving from position 0 to
         position 10 and then gets stopped.

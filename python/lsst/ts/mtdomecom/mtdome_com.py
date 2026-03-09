@@ -90,6 +90,7 @@ COMMANDS_REPLIED_PERIOD = 600
 # that there probably will be more situations during commissioning in which
 # commands need to be disabled.
 COMMANDS_DISABLED_FOR_COMMISSIONING = {
+    CommandName.CALIBRATE_EL,
     CommandName.CRAWL_EL,
     CommandName.FANS,
     CommandName.GO_STATIONARY_EL,
@@ -1271,6 +1272,15 @@ class MTDomeCom:
         self.log.debug("set_zero_az")
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.SET_ZERO_AZ)
+
+    async def calibrate_el(self) -> None:
+        """Move both EL drives towards zero until the limit switches engage.
+
+        This may be necessary to avoid skew in the light/windscreen panels.
+        """
+        self.log.debug("calibrate_el")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(command=CommandName.CALIBRATE_EL)
 
     async def home(self, sub_system_ids: int, direction: OpenClose) -> None:
         """Search the home position of the Aperture Shutter in the indicated

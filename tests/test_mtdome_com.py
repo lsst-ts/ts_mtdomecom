@@ -144,6 +144,15 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 == mtdomecom.InternalMotionState.STATIONARY.name
             )
 
+    async def test_calibrate_el(self) -> None:
+        async with self.create_mtdomecom():
+            assert self.mtdomecom_com.mock_ctrl.lwscs.target_state != MotionState.STOPPED.name
+            await self.mtdomecom_com.calibrate_el()
+            assert (
+                self.mtdomecom_com.mock_ctrl.lwscs.target_state
+                == mtdomecom.InternalMotionState.STATIONARY.name
+            )
+
     async def test_stop_louvers(self) -> None:
         async with self.create_mtdomecom():
             for i in range(mtdomecom.LCS_NUM_LOUVERS):

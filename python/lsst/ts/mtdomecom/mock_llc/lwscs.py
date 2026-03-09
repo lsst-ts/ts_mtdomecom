@@ -406,3 +406,31 @@ class LwscsStatus(BaseMockStatus):
                 self.drives_in_error_state[motor_id] = False
         self.end_tai = start_tai
         return 0.0
+
+    async def calibrate_el(self, start_tai: float) -> float:
+        """Move both EL drives towards zero until the limit switches engage.
+
+        This may be necessary to avoid skew in the light/windscreen panels.
+
+        Parameters
+        ----------
+        start_tai : `float`
+            The TAI time, unix seconds, when the command was issued. To model
+            the real dome, this should be the current time. However, for unit
+            tests it can be convenient to use other values.
+
+        Returns
+        -------
+        `float`
+            The estimated duration of the execution of the command.
+        """
+        self.position_actual = 0.0
+        self.position_commanded = 0.0
+        self.velocity_actual = 0.0
+        self.velocity_commanded = 0.0
+        self.start_tai = start_tai
+        self.end_tai = start_tai
+        self.start_position = self.position_actual
+        self.current_state = InternalMotionState.STATIONARY.name
+        self.target_state = InternalMotionState.STATIONARY.name
+        return 0.0
