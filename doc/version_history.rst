@@ -8,6 +8,16 @@ Version History
 
 .. towncrier release notes start
 
+v0.5.0 (2026-03-09)
+===================
+
+New Features
+------------
+
+- Added basic support for the resetDrivesEl command. (`OSW-1927 <https://rubinobs.atlassian.net//browse/OSW-1927>`_)
+- Added basic support for the calibrateEl command. (`OSW-1927 <https://rubinobs.atlassian.net//browse/OSW-1927>`_)
+
+
 v0.4.0 (2026-02-25)
 ===================
 
