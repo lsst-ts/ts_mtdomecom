@@ -133,6 +133,9 @@ class LwscsStatus(BaseMockStatus):
         self.current_state = MotionState.PARKED.name
         self.target_state = MotionState.PARKED.name
 
+        # Error state related attributes.
+        self.drives_in_error_state = [False] * LWSCS_NUM_MOTORS
+
     async def evaluate_state(self, current_tai: float) -> None:
         """Evaluate the state and perform a state transition if necessary.
 
@@ -219,9 +222,9 @@ class LwscsStatus(BaseMockStatus):
         """
         await self.evaluate_state(current_tai)
 
-        # Determine the current drawn by the light wind screen motors. Here
+        # Determine the current drawn by the light/windscreen motors. Here
         # fixed current values are assumed while in reality they vary depending
-        # on the speed and the inclination of the light wind screen.
+        # on the speed and the inclination of the light/windscreen.
         if self.current_state in [MotionState.CRAWLING.name, MotionState.MOVING.name]:
             self.drive_current_actual = np.full(LWSCS_NUM_MOTORS, LWSCS_CURRENT_PER_MOTOR, dtype=float)
             self.power_draw = LWS_POWER_DRAW
@@ -257,7 +260,7 @@ class LwscsStatus(BaseMockStatus):
         self.log.debug(f"lwscs_state = {self.llc_status}")
 
     async def moveEl(self, position: float, start_tai: float) -> float:
-        """Move the light and wind screen to the given elevation.
+        """Move the light/windscreen to the given elevation.
 
         Parameters
         ----------
@@ -285,14 +288,14 @@ class LwscsStatus(BaseMockStatus):
         return duration
 
     async def crawlEl(self, velocity: float, start_tai: float) -> float:
-        """Crawl the light and wind screen in the given direction at the given
+        """Crawl the light/windscreen in the given direction at the given
         velocity.
 
         Parameters
         ----------
         velocity: `float`
             The velocity [rad/s] at which to crawl. The velocity is not checked
-            against the velocity limits for the light and wind screen.
+            against the velocity limits for the light/windscreen.
         start_tai: `float`
             The TAI time, unix seconds, when the command was issued. To model
             the real dome, this should be the current time. However, for unit
@@ -314,7 +317,7 @@ class LwscsStatus(BaseMockStatus):
         return 0.0
 
     async def stopEl(self, start_tai: float) -> float:
-        """Stop moving the light and wind screen.
+        """Stop moving the light/windscreen.
 
         Parameters
         ----------
@@ -364,12 +367,70 @@ class LwscsStatus(BaseMockStatus):
             the real dome, this should be the current time. However, for unit
             tests it can be convenient to use other values.
         """
-        # self.elevation_motion.exit_fault(start_tai)
         await self._handle_moving_or_crawling(start_tai)
         self.start_position = self.position_actual
         self.position_commanded = self.position_actual
         self.start_tai = start_tai
         self.end_tai = start_tai
+        self.current_state = InternalMotionState.STATIONARY.name
         self.target_state = InternalMotionState.STATIONARY.name
         self.end_tai = start_tai
+        return 0.0
+
+    async def reset_drives_el(self, start_tai: float, reset: list[int]) -> float:
+        """Reset one or more El drives.
+
+        Parameters
+        ----------
+        start_tai : `float`
+            The TAI time, unix seconds, when the command was issued. To model
+            the real dome, this should be the current time. However, for unit
+            tests it can be convenient to use other values.
+        reset : `list` [ `int` ]
+            Desired reset action to execute on each El drive: 0 means don't
+            reset, 1 means reset.
+
+        Returns
+        -------
+        `float`
+            The expected duration of the command [s].
+
+        Notes
+        -----
+        This is necessary when exiting from FAULT state without going to
+        DEGRADED_MODE since the drives don't reset themselves.
+        The number of values in the reset parameter is not validated.
+        """
+        for motor_id, val in enumerate(reset):
+            if val == 1:
+                self.drives_in_error_state[motor_id] = False
+        self.end_tai = start_tai
+        return 0.0
+
+    async def calibrate_el(self, start_tai: float) -> float:
+        """Move both EL drives towards zero until the limit switches engage.
+
+        This may be necessary to avoid skew in the light/windscreen panels.
+
+        Parameters
+        ----------
+        start_tai : `float`
+            The TAI time, unix seconds, when the command was issued. To model
+            the real dome, this should be the current time. However, for unit
+            tests it can be convenient to use other values.
+
+        Returns
+        -------
+        `float`
+            The estimated duration of the execution of the command.
+        """
+        self.position_actual = 0.0
+        self.position_commanded = 0.0
+        self.velocity_actual = 0.0
+        self.velocity_commanded = 0.0
+        self.start_tai = start_tai
+        self.end_tai = start_tai
+        self.start_position = self.position_actual
+        self.current_state = InternalMotionState.STATIONARY.name
+        self.target_state = InternalMotionState.STATIONARY.name
         return 0.0
