@@ -617,6 +617,31 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             assert lwscs_status["positionActual"] >= math.radians(1.7)
             assert lwscs_status["positionActual"] <= math.radians(1.9)
 
+    async def test_calibrateEl(self) -> None:
+        async with self.create_mtdomecom_controller(), self.create_client():
+            start_position = 0
+            target_position = math.radians(5)
+            await self.prepare_lwscs_move(start_position=start_position, target_position=target_position)
+
+            # Move EL and check the position and status.
+            await self.verify_lwscs_motion(
+                time_diff=1.0,
+                expected_status=MotionState.MOVING,
+                expected_position=math.radians(1.75),
+            )
+
+            await self.write(command=mtdomecom.CommandName.CALIBRATE_EL, parameters={})
+            self.data = await self.read()
+            assert self.data["response"] == mtdomecom.ResponseCode.OK
+            assert self.data["timeout"] == pytest.approx(0.0)
+
+            await self.write(command=mtdomecom.CommandName.STATUS_LWSCS, parameters={})
+            self.data = await self.read()
+            lwscs_status = self.data[mtdomecom.LlcName.LWSCS.value]
+            assert lwscs_status["status"]["status"] == mtdomecom.InternalMotionState.STATIONARY.name
+            assert lwscs_status["positionActual"] >= math.radians(0.0)
+            assert lwscs_status["positionActual"] <= math.radians(0.0)
+
     async def prepare_lwscs_crawl(self, start_position: float, target_velocity: float) -> None:
         """Utility method for preparing the initial state of LWSCS for easier
         testing.

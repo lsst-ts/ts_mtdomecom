@@ -132,6 +132,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         # * No arguments, if `has_argument` False.
         # * The argument as a string, if `has_argument` is True.
         self.dispatch_dict: dict[str, typing.Callable] = {
+            CommandName.CALIBRATE_EL: self.calibrate_el,
             CommandName.CLOSE_LOUVERS: self.close_louvers,
             CommandName.CLOSE_SHUTTER: self.close_shutter,
             CommandName.CONFIG: self.config,
@@ -154,6 +155,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.OPEN_SHUTTER: self.open_shutter,
             CommandName.PARK: self.park,
             CommandName.RESET_DRIVES_AZ: self.reset_drives_az,
+            CommandName.RESET_DRIVES_EL: self.reset_drives_el,
             CommandName.RESET_DRIVES_LOUVERS: self.reset_drives_louvers,
             CommandName.RESET_DRIVES_SHUTTER: self.reset_drives_shutter,
             CommandName.RESTORE: self.restore,
@@ -781,8 +783,8 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
 
     async def exit_fault_el(self) -> None:
         """Exit LWSCS from fault state."""
-        assert self.lcs is not None
-        await self.lcs.exit_fault(self.current_tai)
+        assert self.lwscs is not None
+        await self.lwscs.exit_fault(self.current_tai)
 
     async def exit_fault_louvers(self) -> None:
         """Exit LCS from fault state."""
@@ -833,11 +835,34 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         Notes
         -----
         This is necessary when exiting from FAULT state without going to
-        Degraded Mode since the drives don't reset themselves.
+        DEGRADED_MODE since the drives don't reset themselves.
         The number of values in the reset parameter is not validated.
         """
         assert self.amcs is not None
         return await self.amcs.reset_drives_az(self.current_tai, reset)
+
+    async def reset_drives_el(self, reset: list[int]) -> float:
+        """Reset one or more El drives.
+
+        Parameters
+        ----------
+        reset: `list`[`int`]
+            Desired reset action to execute on each El drive: 0 means don't
+            reset, 1 means reset.
+
+        Returns
+        -------
+        `float`
+            The estimated duration of the execution of the command.
+
+        Notes
+        -----
+        This is necessary when exiting from FAULT state without going to
+        DEGRADED_MODE since the drives don't reset themselves.
+        The number of values in the reset parameter is not validated.
+        """
+        assert self.lwscs is not None
+        return await self.lwscs.reset_drives_el(self.current_tai, reset)
 
     async def reset_drives_louvers(self, reset: list[int]) -> None:
         """Reset one or more Louver drives.
@@ -851,7 +876,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         Notes
         -----
         This is necessary when exiting from FAULT state without going to
-        Degraded Mode since the drives don't reset themselves.
+        DEGRADED_MODE since the drives don't reset themselves.
         The number of values in the reset parameter is not validated.
         """
         assert self.lcs is not None
@@ -869,7 +894,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         Notes
         -----
         This is necessary when exiting from FAULT state without going to
-        Degraded Mode since the drives don't reset themselves.
+        DEGRADED_MODE since the drives don't reset themselves.
         The number of values in the reset parameter is not validated.
         """
         assert self.apscs is not None
@@ -887,6 +912,19 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         """
         assert self.amcs is not None
         return await self.amcs.set_zero_az(self.current_tai)
+
+    async def calibrate_el(self) -> float:
+        """Move both EL drives towards zero until the limit switches engage.
+
+        This may be necessary to avoid skew in the light/windscreen panels.
+
+        Returns
+        -------
+        `float`
+            The estimated duration of the execution of the command.
+        """
+        assert self.lwscs is not None
+        return await self.lwscs.calibrate_el(self.current_tai)
 
     async def home(self, direction: OpenClose) -> float:
         """Home the Aperture Shutter, which is the closed position.

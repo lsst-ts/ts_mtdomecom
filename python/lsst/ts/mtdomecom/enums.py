@@ -72,6 +72,7 @@ motion_state_translations = {InternalMotionState.STATIONARY.name: MotionState.ST
 class CommandName(enum.StrEnum):
     """Command names."""
 
+    CALIBRATE_EL = "calibrateEl"
     CLOSE_LOUVERS = "closeLouvers"
     CLOSE_SHUTTER = "closeShutter"
     CONFIG = "config"
@@ -95,6 +96,7 @@ class CommandName(enum.StrEnum):
     OPEN_SHUTTER = "openShutter"
     PARK = "park"
     RESET_DRIVES_AZ = "resetDrivesAz"
+    RESET_DRIVES_EL = "resetDrivesEl"
     RESET_DRIVES_LOUVERS = "resetDrivesLouvers"
     RESET_DRIVES_SHUTTER = "resetDrivesShutter"
     RESTORE = "restore"
