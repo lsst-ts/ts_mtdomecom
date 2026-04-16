@@ -1,1 +1,0 @@
-Implemented the LWSCS state machine in the simulator.

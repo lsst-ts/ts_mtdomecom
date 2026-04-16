@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.6.0 (2026-04-16)
+===================
+
+New Features
+------------
+
+- Implemented the LWSCS state machine in the simulator. (`OSW-2170 <https://rubinobs.atlassian.net//browse/OSW-2170>`_)
+
+
 v0.5.0 (2026-03-09)
 ===================
 
