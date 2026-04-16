@@ -130,8 +130,8 @@ class LwscsStatus(BaseMockStatus):
         self.power_draw = 0.0
 
         # State machine related attributes.
-        self.current_state = MotionState.PARKED.name
-        self.target_state = MotionState.PARKED.name
+        self.current_state = InternalMotionState.STATIONARY.name
+        self.target_state = InternalMotionState.STATIONARY.name
 
         # Error state related attributes.
         self.drives_in_error_state = [False] * LWSCS_NUM_MOTORS
@@ -144,12 +144,51 @@ class LwscsStatus(BaseMockStatus):
         current_tai : `float`
             The current time, in UNIX TAI seconds.
         """
-        # No state machine yet.
-        await self._handle_motion(current_tai)
+        match self.target_state:
+            case MotionState.MOVING.name | MotionState.CRAWLING.name | InternalMotionState.STATIONARY.name:
+                await self._handle_motion(current_tai)
+            case MotionState.STOPPED.name:
+                await self._handle_stopped(current_tai)
+            case _:
+                await self._warn_invalid_state()
+
+    async def _warn_invalid_state(self) -> None:
+        self.log.warning(
+            "Not handling invalid combination of current state "
+            f"{self.current_state} and target state {self.target_state}"
+        )
 
     async def _handle_motion(self, current_tai: float) -> None:
-        # No state machine yet.
-        await self._handle_moving_or_crawling(current_tai)
+        match self.current_state:
+            case InternalMotionState.STATIONARY.name:
+                if self.target_state == MotionState.MOVING.name:
+                    self.current_state = MotionState.ENABLING_MOTOR_POWER.name
+                else:
+                    await self._warn_invalid_state()
+            case MotionState.ENABLING_MOTOR_POWER.name:
+                self.current_state = MotionState.MOTOR_POWER_ON.name
+            case MotionState.MOTOR_POWER_ON.name:
+                self.current_state = MotionState.GO_NORMAL.name
+            case MotionState.GO_NORMAL.name:
+                self.current_state = MotionState.DISENGAGING_BRAKES.name
+            case MotionState.DISENGAGING_BRAKES.name:
+                self.current_state = MotionState.BRAKES_DISENGAGED.name
+            case MotionState.BRAKES_DISENGAGED.name:
+                self.current_state = MotionState.MOVING.name
+            case MotionState.MOVING.name | MotionState.CRAWLING.name:
+                await self._handle_moving_or_crawling(current_tai)
+            case MotionState.STOPPED.name:
+                await self._handle_stopped(current_tai)
+            case MotionState.ENGAGING_BRAKES.name:
+                self.current_state = MotionState.BRAKES_ENGAGED.name
+            case MotionState.BRAKES_ENGAGED.name:
+                self.current_state = MotionState.GO_STATIONARY.name
+            case MotionState.GO_STATIONARY.name:
+                self.current_state = MotionState.DISABLING_MOTOR_POWER.name
+            case MotionState.DISABLING_MOTOR_POWER.name:
+                self.current_state = MotionState.MOTOR_POWER_OFF.name
+            case MotionState.MOTOR_POWER_OFF.name:
+                self.current_state = InternalMotionState.STATIONARY.name
 
     async def _handle_moving_or_crawling(self, current_tai: float) -> None:
         distance = get_distance(self.start_position, self.position_commanded)
@@ -209,6 +248,21 @@ class LwscsStatus(BaseMockStatus):
 
                 self.velocity_actual = 0.0
 
+    async def _handle_stopped(self, current_tai: float) -> None:
+        if self.target_state in [
+            MotionState.MOVING.name,
+            MotionState.CRAWLING.name,
+        ]:
+            self.current_state = MotionState.MOVING.name
+            await self._handle_moving_or_crawling(current_tai)
+        elif self.target_state == InternalMotionState.STATIONARY.name:
+            self.current_state = MotionState.ENGAGING_BRAKES.name
+        elif self.target_state == MotionState.STOPPED.name:
+            self.current_state = MotionState.STOPPED.name
+            await self._handle_moving_or_crawling(current_tai)
+        else:
+            await self._warn_invalid_state()
+
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in
         the llc_status `dict`.
@@ -225,16 +279,20 @@ class LwscsStatus(BaseMockStatus):
         # Determine the current drawn by the light/windscreen motors. Here
         # fixed current values are assumed while in reality they vary depending
         # on the speed and the inclination of the light/windscreen.
+        # Also, the LWSCS state machine doesn't have a CRAWLING state so here
+        # MOVING is reported in case the state is MOVING or CRAWLING.
+        state_to_report = self.current_state
         if self.current_state in [MotionState.CRAWLING.name, MotionState.MOVING.name]:
             self.drive_current_actual = np.full(LWSCS_NUM_MOTORS, LWSCS_CURRENT_PER_MOTOR, dtype=float)
             self.power_draw = LWS_POWER_DRAW
+            state_to_report = MotionState.MOVING.name
         else:
             self.drive_current_actual = np.zeros(LWSCS_NUM_MOTORS, dtype=float)
             self.power_draw = 0.0
         self.llc_status = {
             "status": {
                 "messages": self.messages,
-                "status": self.current_state,
+                "status": state_to_report,
                 "operationalMode": self.operational_mode.name,
             },
             "positionActual": self.position_actual,

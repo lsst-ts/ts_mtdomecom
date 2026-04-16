@@ -61,6 +61,7 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
         self.lwscs = mtdomecom.mock_llc.LwscsStatus(start_tai=start_tai)
         self.lwscs.position_actual = math.radians(start_position)
         self.lwscs.vmax = math.radians(max_speed)
+        self.lwscs.current_state = MotionState.MOVING.name
         self.lwscs.start_tai = start_tai
 
     async def verify_lwscs_state(
@@ -245,10 +246,10 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
         velocity = 1.0
         expected_duration = 0.0
         expected_states = [
-            ExpectedState(1.0, 1.0, velocity, MotionState.CRAWLING),
-            ExpectedState(2.5, 2.5, velocity, MotionState.CRAWLING),
-            ExpectedState(10.1, 10.1, velocity, MotionState.CRAWLING),
-            ExpectedState(89.0, 89.0, velocity, MotionState.CRAWLING),
+            ExpectedState(1.0, 1.0, velocity, MotionState.MOVING),
+            ExpectedState(2.5, 2.5, velocity, MotionState.MOVING),
+            ExpectedState(10.1, 10.1, velocity, MotionState.MOVING),
+            ExpectedState(89.0, 89.0, velocity, MotionState.MOVING),
             ExpectedState(90.0, 90.0, 0.0, MotionState.STOPPED),
             ExpectedState(91.0, 90.0, 0.0, MotionState.STOPPED),
         ]
@@ -277,8 +278,8 @@ class LwscsTestCase(unittest.IsolatedAsyncioTestCase):
         velocity = -1.0
         expected_duration = 0.0
         expected_states = [
-            ExpectedState(1.0, 9.0, velocity, MotionState.CRAWLING),
-            ExpectedState(2.5, 7.5, velocity, MotionState.CRAWLING),
+            ExpectedState(1.0, 9.0, velocity, MotionState.MOVING),
+            ExpectedState(2.5, 7.5, velocity, MotionState.MOVING),
             ExpectedState(10.1, 0.0, 0.0, MotionState.STOPPED),
         ]
         await self.verify_lwscs(

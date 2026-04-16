@@ -494,6 +494,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         assert self.mock_ctrl is not None
         self.mock_ctrl.current_tai = _CURRENT_TAI
         self.mock_ctrl.lwscs.position_actual = start_position
+        self.mock_ctrl.lwscs.current_state = MotionState.MOVING.name
         await self.write(
             command=mtdomecom.CommandName.MOVE_EL,
             parameters={"position": target_position},
@@ -661,6 +662,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
         assert self.mock_ctrl is not None
         self.mock_ctrl.current_tai = _CURRENT_TAI
         self.mock_ctrl.lwscs.position_actual = start_position
+        self.mock_ctrl.lwscs.current_state = MotionState.MOVING.name
         await self.write(
             command=mtdomecom.CommandName.CRAWL_EL,
             parameters={"velocity": target_velocity},
@@ -676,12 +678,12 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             # Let EL crawl a little and check the position.
             await self.verify_lwscs_motion(
                 time_diff=1.0,
-                expected_status=MotionState.CRAWLING,
+                expected_status=MotionState.MOVING,
                 expected_position=math.radians(0.1),
             )
             await self.verify_lwscs_motion(
                 time_diff=1.0,
-                expected_status=MotionState.CRAWLING,
+                expected_status=MotionState.MOVING,
                 expected_position=math.radians(0.2),
             )
 
@@ -1184,7 +1186,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_LWSCS, parameters={})
             self.data = await self.read()
             lwscs_status = self.data[mtdomecom.LlcName.LWSCS.value]
-            assert lwscs_status["status"]["status"] == MotionState.STOPPED.name
+            assert lwscs_status["status"]["status"] == mtdomecom.InternalMotionState.STATIONARY.name
             assert lwscs_status["positionActual"] == 0
 
             await self.write(command=mtdomecom.CommandName.STATUS_MONCS, parameters={})
