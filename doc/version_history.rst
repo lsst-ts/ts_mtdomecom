@@ -8,6 +8,16 @@ Version History
 
 .. towncrier release notes start
 
+v0.7.0 (2026-07-20)
+===================
+
+Performance Enhancement
+-----------------------
+
+- Improved the aperture shutter simulator state machine.
+  This now also takes losing the motor positions because of powering off the motors into account. (`OSW-2678 <https://rubinobs.atlassian.net//browse/OSW-2678>`_)
+
+
 v0.6.0 (2026-04-16)
 ===================
 
