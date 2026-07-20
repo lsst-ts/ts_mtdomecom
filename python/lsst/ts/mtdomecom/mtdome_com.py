@@ -47,6 +47,7 @@ from lsst.ts.xml.enums.MTDome import (
 
 from .constants import (
     AMCS_NUM_MOTORS,
+    APSCS_CLOSED_POSITION,
     APSCS_NUM_MOTORS_PER_SHUTTER,
     APSCS_NUM_SHUTTERS,
     DOME_AZIMUTH_OFFSET,
@@ -193,6 +194,9 @@ SLEEP_INTERVAL = 1.0
 # Louvers enabled constants.
 LOUVERS_ENABLED = "louvers_enabled"
 LOUVERS_ENABLED_FILENAME = f"{LOUVERS_ENABLED}.yaml"
+
+# A slightly smaller than zero threshold taking jitter into account.
+SHUTTER_POSITION_THRESHOLD = -0.001
 
 
 def get_louvers_enabled(config_dir: pathlib.Path) -> set[Louver]:
@@ -396,6 +400,9 @@ class MTDomeCom:
         # with velocity == 0.0 since that may lead to a 360º rotation.
         self.current_moveAz_command = MoveAzCommandData()
         self.reject_small_azimuth_motions = reject_small_azimuth_motions
+
+        # Keep track of the shutter positions in case they reset to 0.
+        self.last_seen_shutter_positions: list[float] = [0.0, 0.0]
 
         self.log.info("MTDomeCom constructed.")
 
@@ -1464,6 +1471,9 @@ class MTDomeCom:
                 await cb(self.communication_error_report)
                 return
 
+        if llc_name == LlcName.APSCS:
+            status[llc_name] = await self._correct_shutter_positions_if_necessary(status[llc_name])
+
         pre_processed_status = await self._pre_process_status(llc_name, status[llc_name])
 
         # The timestamp is irrelevant for capacitor banks status.
@@ -1546,6 +1556,66 @@ class MTDomeCom:
                 else:
                     # Add 0.0 to avoid -0.0 values
                     telemetry[key] = round(telemetry[key], keys_to_round[key]) + 0.0
+
+    async def _correct_shutter_positions_if_necessary(
+        self, status: dict[str, typing.Any]
+    ) -> dict[str, typing.Any]:
+        """Correct the shutter positions in case there is a jump due to motor
+        power loss.
+
+        This will lead to the shutter positions resetting to zero while they
+        should be at the same position as before.
+
+        Parameters
+        ----------
+        status : `dict` [ `str`, `typing.Any` ]
+            A dictionary containing status data, which includes the shutter
+            positions.
+
+        Returns
+        -------
+        dict[str, typing.Any]
+            A dictionary representing the corrected status data.
+        """
+
+        self.log.debug(f"{status['positionActual']=}, {self.last_seen_shutter_positions=}")
+        for i in range(2):
+            if status["status"]["status"][i] in [
+                MotionState.PROXIMITY_OPEN_LS_ENGAGED.name,
+                MotionState.FINAL_UP_OPEN_LS_ENGAGED.name,
+                MotionState.FINAL_LOW_OPEN_LS_ENGAGED.name,
+                MotionState.STOPPING.name,
+                MotionState.STOPPED.name,
+                MotionState.ENGAGING_BRAKES.name,
+                MotionState.BRAKES_ENGAGED.name,
+                MotionState.GO_STATIONARY.name,
+                MotionState.DISABLING_MOTOR_POWER.name,
+                MotionState.MOTOR_POWER_OFF.name,
+                MotionState.OPEN.name,
+            ]:
+                if status["positionActual"][i] > SHUTTER_POSITION_THRESHOLD:
+                    self.last_seen_shutter_positions[i] = status["positionActual"][i]
+        for i in range(2):
+            if (
+                status["status"]["status"][i]
+                in [
+                    MotionState.ENABLING_MOTOR_POWER.name,
+                    MotionState.MOTOR_POWER_ON.name,
+                    MotionState.GO_NORMAL.name,
+                    MotionState.DISENGAGING_BRAKES.name,
+                    MotionState.BRAKES_DISENGAGED.name,
+                    MotionState.CLOSING.name,
+                ]
+                and status["positionActual"][i] == APSCS_CLOSED_POSITION
+            ) or status["positionActual"][i] < SHUTTER_POSITION_THRESHOLD:
+                # The positionActual here is negative, so we need to subtract
+                # the absolute value.
+                status["positionActual"][i] = self.last_seen_shutter_positions[i] - math.fabs(
+                    status["positionActual"][i]
+                )
+                self.log.debug(f"Corrected positionActual[{i}]={status['positionActual'][i]}")
+
+        return status
 
     async def check_all_commands_have_replies(self) -> None:
         """Check if all commands have received a reply.
