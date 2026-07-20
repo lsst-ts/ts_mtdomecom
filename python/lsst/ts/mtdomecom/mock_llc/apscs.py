@@ -43,28 +43,6 @@ from ..power_management.power_draw_constants import APS_POWER_DRAW
 from .base_mock_llc import DEFAULT_MESSAGES, FAULT_MESSAGES, BaseMockStatus
 
 
-def get_duration(start_position: float, end_position: float, max_speed: float) -> float:
-    """Determines the duration of the move using the distance of the move
-    and the maximum speed, or zero in case of a crawl.
-
-    Parameters
-    ----------
-    start_position : `float`
-        The start position [%].
-    end_position : `float`
-        The end position [%].
-    max_speed : `float`
-        The maximum speed [%/s].
-
-    Returns
-    -------
-    duration : `float`
-        The duration of the move [s].
-    """
-    duration = math.fabs(end_position - start_position) / max_speed
-    return duration
-
-
 class ApscsStatus(BaseMockStatus):
     """Represents the status of the Aperture Shutter Control System in
     simulation mode.
@@ -98,15 +76,51 @@ class ApscsStatus(BaseMockStatus):
         self.resolver_head_calibrated = np.zeros(
             APSCS_NUM_SHUTTERS * APSCS_NUM_MOTORS_PER_SHUTTER, dtype=float
         )
-        self.power_draw = 0.0
+        self.power_draw = np.zeros(APSCS_NUM_SHUTTERS, dtype=float)
 
-        # State machine related attributes.
+        # State machine-related attributes.
         self.current_state = [MotionState.CLOSED.name, MotionState.CLOSED.name]
         self.start_state = [MotionState.CLOSED.name, MotionState.CLOSED.name]
         self.target_state = [MotionState.CLOSED.name, MotionState.CLOSED.name]
+        self.was_stopped_command_issued = [False, False]
 
-        # Error state related attributes.
+        # Attributes related to when the motors are powered off and the motor
+        # position isn't known anymore.
+        self.open_limit_switches_engaged = [False, False]
+        self.motors_powered_off = [False, False]
+
+        # This offset will be non-zero when the motor power is shut off. It
+        # will not be reset to zero once the motor power is on again, because
+        # that also doesn't happen with the real hardware.
+        self.position_offset = np.zeros(APSCS_NUM_SHUTTERS, dtype=float)
+
+        # Error state-related attributes.
         self.drives_in_error_state = [[False] * APSCS_NUM_MOTORS_PER_SHUTTER] * APSCS_NUM_SHUTTERS
+
+    def get_duration(
+        self, start_position: float, end_position: float, max_speed: float, shutter_id: int
+    ) -> float:
+        """Determines the duration of the move using the distance of the move
+        and the maximum speed, or zero in case of a crawl.
+
+        Parameters
+        ----------
+        start_position : `float`
+            The start position [%].
+        end_position : `float`
+            The end position [%].
+        max_speed : `float`
+            The maximum speed [%/s].
+        shutter_id : `int`
+            The shutter id.
+
+        Returns
+        -------
+        duration : `float`
+            The duration of the move [s].
+        """
+        duration = math.fabs(end_position - start_position - self.position_offset[shutter_id]) / max_speed
+        return duration
 
     async def evaluate_state(self, current_tai: float, shutter_id: int) -> None:
         """Evaluate the state and perform a state transition if necessary.
@@ -152,6 +166,7 @@ class ApscsStatus(BaseMockStatus):
                 self.current_state[shutter_id] = MotionState.ENABLING_MOTOR_POWER.name
             case MotionState.ENABLING_MOTOR_POWER.name:
                 self.current_state[shutter_id] = MotionState.MOTOR_POWER_ON.name
+                self.motors_powered_off[shutter_id] = False
             case MotionState.MOTOR_POWER_ON.name:
                 self.current_state[shutter_id] = MotionState.GO_NORMAL.name
             case MotionState.GO_NORMAL.name:
@@ -168,6 +183,8 @@ class ApscsStatus(BaseMockStatus):
                 await self._handle_final_up_open_ls_engaged(shutter_id)
             case MotionState.FINAL_LOW_OPEN_LS_ENGAGED.name:
                 self.current_state[shutter_id] = MotionState.STOPPING.name
+                # The open limit switches are engaged now.
+                self.open_limit_switches_engaged[shutter_id] = True
             case MotionState.CLOSING.name:
                 await self._handle_opening_or_closing(current_tai, shutter_id)
             case MotionState.PROXIMITY_CLOSED_LS_ENGAGED.name:
@@ -221,7 +238,8 @@ class ApscsStatus(BaseMockStatus):
             MotionState.CLOSING.name,
             InternalMotionState.STATIONARY.name,
         ]:
-            self.current_state[shutter_id] = MotionState.LP_DISENGAGING.name
+            self.current_state[shutter_id] = MotionState.ENABLING_MOTOR_POWER.name
+            self.open_limit_switches_engaged[shutter_id] = False
         else:
             await self._warn_invalid_state(shutter_id)
 
@@ -267,10 +285,7 @@ class ApscsStatus(BaseMockStatus):
             await self._warn_invalid_state(shutter_id)
 
     async def _handle_go_stationary(self, shutter_id: int) -> None:
-        if self.start_state[shutter_id] in [
-            MotionState.OPENING.name,
-            MotionState.CLOSING.name,
-        ]:
+        if self.start_state[shutter_id] in [MotionState.CLOSING.name]:
             self.current_state[shutter_id] = MotionState.LP_ENGAGING.name
         else:
             self.current_state[shutter_id] = MotionState.DISABLING_MOTOR_POWER.name
@@ -288,10 +303,17 @@ class ApscsStatus(BaseMockStatus):
 
     async def _handle_moving(self, current_tai: float, shutter_id: int) -> None:
         if current_tai >= self.end_tai[shutter_id]:
-            self.position_actual[shutter_id] = self.position_commanded[shutter_id]
+            self.position_actual[shutter_id] = (
+                self.position_commanded[shutter_id] - self.position_offset[shutter_id]
+            )
 
             if self.start_state[shutter_id] == MotionState.OPENING.name:
-                self.current_state[shutter_id] = MotionState.PROXIMITY_OPEN_LS_ENGAGED.name
+                if self.position_actual[shutter_id] < APSCS_OPEN_POSITION:
+                    # The open limit switches only engage when the shutter is
+                    # fully open.
+                    self.current_state[shutter_id] = MotionState.STOPPING.name
+                else:
+                    self.current_state[shutter_id] = MotionState.PROXIMITY_OPEN_LS_ENGAGED.name
             elif self.start_state[shutter_id] == MotionState.CLOSING.name:
                 self.current_state[shutter_id] = MotionState.PROXIMITY_CLOSED_LS_ENGAGED.name
             else:
@@ -299,10 +321,17 @@ class ApscsStatus(BaseMockStatus):
         elif current_tai < self.start_tai[shutter_id]:
             raise ValueError(f"TAI {current_tai} is smaller than start TAI {self.start_tai[shutter_id]}.")
         else:
+            # Moving so the open limit switches are not engaged.
+            self.open_limit_switches_engaged[shutter_id] = False
+
             frac_time = (current_tai - self.start_tai[shutter_id]) / (
                 self.end_tai[shutter_id] - self.start_tai[shutter_id]
             )
-            distance = self.position_commanded[shutter_id] - self.start_position[shutter_id]
+            distance = (
+                self.position_commanded[shutter_id]
+                - self.start_position[shutter_id]
+                - self.position_offset[shutter_id]
+            )
             self.position_actual[shutter_id] = self.start_position[shutter_id] + distance * frac_time
 
         # Add jitter.
@@ -316,9 +345,18 @@ class ApscsStatus(BaseMockStatus):
         elif self.current_state[shutter_id] == MotionState.STOPPED.name and self.target_state[shutter_id] in [
             MotionState.OPEN.name,
             MotionState.CLOSED.name,
-            MotionState.GO_STATIONARY.name,
+            InternalMotionState.STATIONARY.name,
         ]:
-            self.current_state[shutter_id] = MotionState.ENGAGING_BRAKES.name
+            if not self.was_stopped_command_issued[shutter_id]:
+                self.current_state[shutter_id] = MotionState.ENGAGING_BRAKES.name
+            else:
+                if self.target_state[shutter_id] == MotionState.OPEN.name:
+                    self.current_state[shutter_id] = MotionState.OPENING.name
+                elif self.target_state[shutter_id] == MotionState.CLOSED.name:
+                    self.current_state[shutter_id] = MotionState.CLOSING.name
+                else:
+                    self.current_state[shutter_id] = MotionState.ENGAGING_BRAKES.name
+                self.was_stopped_command_issued[shutter_id] = False
 
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in
@@ -337,13 +375,24 @@ class ApscsStatus(BaseMockStatus):
                     shutter_id * APSCS_NUM_MOTORS_PER_SHUTTER : (shutter_id + 1)
                     * APSCS_NUM_MOTORS_PER_SHUTTER
                 ] = APSCS_CURRENT_PER_MOTOR
-                self.power_draw = APS_POWER_DRAW
+                self.power_draw[shutter_id] = APS_POWER_DRAW / APSCS_NUM_SHUTTERS
             else:
                 self.drive_current_actual[
                     shutter_id * APSCS_NUM_MOTORS_PER_SHUTTER : (shutter_id + 1)
                     * APSCS_NUM_MOTORS_PER_SHUTTER
                 ] = 0.0
-                self.power_draw = 0.0
+                self.power_draw[shutter_id] = 0.0
+                self.drive_torque_actual[shutter_id] = 0.0
+            if self.motors_powered_off[shutter_id]:
+                self.drive_current_actual[
+                    shutter_id * APSCS_NUM_MOTORS_PER_SHUTTER : (shutter_id + 1)
+                    * APSCS_NUM_MOTORS_PER_SHUTTER
+                ] = 0.0
+                self.position_offset[shutter_id] = self.position_actual[shutter_id]
+                self.position_actual[shutter_id] = 0.0
+                self.start_position[shutter_id] = 0.0
+                self.power_draw[shutter_id] = 0.0
+                self.drive_torque_actual[shutter_id] = 0.0
         self.llc_status = {
             "status": {
                 "messages": self.messages,
@@ -358,7 +407,7 @@ class ApscsStatus(BaseMockStatus):
             "driveTemperature": self.drive_temperature.tolist(),
             "resolverHeadRaw": self.resolver_head_raw.tolist(),
             "resolverHeadCalibrated": self.resolver_head_calibrated.tolist(),
-            "powerDraw": self.power_draw,
+            "powerDraw": sum(self.power_draw),
             "timestampUTC": current_tai,
         }
         self.log.debug(f"apcs_state = {self.llc_status}")
@@ -381,14 +430,15 @@ class ApscsStatus(BaseMockStatus):
         durations = [0.0, 0.0]
         for shutter_id in range(APSCS_NUM_SHUTTERS):
             self.start_position[shutter_id] = self.position_actual[shutter_id]
-            self.position_commanded[shutter_id] = APSCS_OPEN_POSITION
+            self.position_commanded[shutter_id] = APSCS_OPEN_POSITION - self.position_offset[shutter_id]
             self.start_state[shutter_id] = MotionState.OPENING.name
             self.target_state[shutter_id] = MotionState.OPEN.name
             self.start_tai[shutter_id] = start_tai
-            durations[shutter_id] = get_duration(
+            durations[shutter_id] = self.get_duration(
                 start_position=self.position_actual[shutter_id],
                 end_position=APSCS_OPEN_POSITION,
                 max_speed=APSCS_SHUTTER_SPEED,
+                shutter_id=shutter_id,
             )
             self.end_tai[shutter_id] = durations[shutter_id] + self.start_tai[shutter_id]
         return max(durations)
@@ -415,10 +465,11 @@ class ApscsStatus(BaseMockStatus):
             self.start_state[shutter_id] = MotionState.CLOSING.name
             self.target_state[shutter_id] = MotionState.CLOSED.name
             self.start_tai[shutter_id] = start_tai
-            durations[shutter_id] = get_duration(
+            durations[shutter_id] = self.get_duration(
                 start_position=self.position_actual[shutter_id],
                 end_position=APSCS_CLOSED_POSITION,
                 max_speed=APSCS_SHUTTER_SPEED,
+                shutter_id=shutter_id,
             )
             self.end_tai[shutter_id] = durations[shutter_id] + self.start_tai[shutter_id]
         return max(durations)
@@ -450,6 +501,7 @@ class ApscsStatus(BaseMockStatus):
                 self.start_tai[shutter_id] = start_tai
                 self.start_position[shutter_id] = self.position_actual[shutter_id]
                 self.end_tai[shutter_id] = start_tai
+                self.was_stopped_command_issued[shutter_id] = True
         return 0.0
 
     async def go_stationary(self, start_tai: float) -> float:
@@ -475,10 +527,11 @@ class ApscsStatus(BaseMockStatus):
                 self.start_state[shutter_id] = MotionState.GO_STATIONARY.name
                 self.target_state[shutter_id] = InternalMotionState.STATIONARY.name
                 self.start_tai[shutter_id] = start_tai
-                durations[shutter_id] = get_duration(
+                durations[shutter_id] = self.get_duration(
                     start_position=self.position_actual[shutter_id],
                     end_position=APSCS_OPEN_POSITION,
                     max_speed=APSCS_SHUTTER_SPEED,
+                    shutter_id=shutter_id,
                 )
                 self.end_tai[shutter_id] = durations[shutter_id] + self.start_tai[shutter_id]
         duration = max(durations)
@@ -489,7 +542,7 @@ class ApscsStatus(BaseMockStatus):
 
         This is necessary in case the ApSCS (Aperture Shutter Control System)
         was shutdown with the Aperture Shutter not fully open or fully closed.
-        For now `closeShutter` simply is called but this may change.
+        For now `closeShutter` simply is called, but this may change.
 
         Parameters
         ----------
@@ -500,7 +553,7 @@ class ApscsStatus(BaseMockStatus):
         direction : `list`[`OpenClose`]
             The direction to home the aperture shutter to. The list should
             contain 2 values, one for each door. This is not checked. The
-            first value only is always taken and both doors are homed toward
+            first value only is always taken, and both doors are homed toward
             the same direction.
 
         Returns
@@ -569,8 +622,8 @@ class ApscsStatus(BaseMockStatus):
 
         Notes
         -----
-        This is necessary when exiting from FAULT state without going to
-        Degraded Mode since the drives don't reset themselves.
+        This is necessary when exiting from the FAULT state without going to
+        the Degraded Mode since the drives don't reset themselves.
         The number of values in the reset parameter is not validated.
         """
         if len(reset) != APSCS_NUM_SHUTTERS * APSCS_NUM_MOTORS_PER_SHUTTER:
@@ -604,7 +657,7 @@ class ApscsStatus(BaseMockStatus):
         drives_in_error : array of int
             Desired error action to execute on each Shutter drive: 0 means
             don't set to error, 1 means set to error. There should be 4 error
-            actions and that is not checked.
+            actions, and that is not checked.
 
         Raises
         ------
