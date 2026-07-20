@@ -1,0 +1,2 @@
+Improved the aperture shutter simulator state machine.
+This now also takes losing the motor positions because of powering off the motors into account.
