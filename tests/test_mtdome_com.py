@@ -29,6 +29,7 @@ import typing
 import unittest
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 import yaml
 
@@ -234,6 +235,18 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
                 self.mtdomecom_com.mock_ctrl.apscs.target_state
                 == [MotionState.CLOSED.name] * mtdomecom.APSCS_NUM_SHUTTERS
             )
+
+    async def test_correct_shutter_position(self) -> None:
+        async with self.create_mtdomecom():
+            self.mtdomecom_com.telemetry_callbacks = {mtdomecom.LlcName.APSCS: self.handle_llc_status}
+
+            self.mtdomecom_com.last_seen_shutter_positions = [100.0] * mtdomecom.APSCS_NUM_SHUTTERS
+            self.mtdomecom_com.mock_ctrl.apscs.position_actual = np.full(
+                mtdomecom.APSCS_NUM_SHUTTERS, -50.0, dtype=float
+            )
+
+            await self.mtdomecom_com.request_llc_status(mtdomecom.LlcName.APSCS)
+            assert self.llc_status["positionActual"] == [50.0, 50.0]
 
     async def test_park(self) -> None:
         async with self.create_mtdomecom():
