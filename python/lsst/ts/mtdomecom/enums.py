@@ -24,6 +24,7 @@ __all__ = [
     "CSCS_COMMANDS",
     "EL_COMMANDS",
     "LOUVERS_COMMANDS",
+    "MONCS_EVENT_NAMES",
     "POSITION_TOLERANCE",
     "POWER_MANAGEMENT_COMMANDS",
     "RAD_COMMANDS",
@@ -353,3 +354,40 @@ STOP_SHUTTER = StopCommand(
 
 # These LLCs are not controlled by the cRIO.
 UNCONTROLLED_LLCS = [LlcName.RAD, LlcName.CSCS, LlcName.OBC]
+
+MONCS_EVENT_NAMES = {
+    "interlocksAMCS": "Interlocks for the Azimuth Motion Control System.",
+    "interlocksLWSCS": "Interlocks for the Light Wind Screen Control System.",
+    "interlocksApSCS": "Interlocks for the Aperture Shutter Control System.",
+    "interlocksLCS": "Interlocks for the Louvers Control System.",
+    "interlocksOBC": "Interlocks for the Overhead Bridge Crane.",
+    "interlocksRAD": "Interlocks for the Rear Access Door.",
+    "interlocksCSCS": "Interlocks for the Calibration Screen Control System.",
+    "interlocksLockingPins": "Interlocks for the Locking Pins.",
+    "sensorsFixedPartLines24V": "Sensors for the 24V lines on the fixed part of the dome.",
+    "sensorsFixedPartAlarms": "Sensors for the alarms of the fixed part of the dome.",
+    "sensorsFixedPartSelectors": "Sensors for the selectors on the fixed part of the dome.",
+    "sensorsFixedPartInflatableSeal": "Sensors for the inflatable seal on the fixed part of the dome.",
+    "sensorsFixedPartValves": "Sensors for the valves on the fixed part of the dome.",
+    "sensorsFixedPart": "Sensors for the fixed part of the dome that do not belong to the 24V lines, alarms, "
+    "selectors, inflatable seal or valves.",
+    "sensorsRotatingPartLines24V": "Sensors for the 24V lines on the rotating part of the dome.",
+    "sensorsRotatingPartLockingPins": "Sensors for the locking pins on the rotating part of the dome.",
+    "sensorsRotatingPartAlarms": "Sensors for the alarms on the rotating part of the dome.",
+    "sensorsRotatingPartDoorsClosed": "Sensors for the doors on the rotating part of the dome.",
+    "sensorsRotatingPartCabinetFan": "Sensors for the cabinet fan on the rotating part of the dome.",
+    "sensorsRotatingPartLimitSwitches": "Sensors for the limit switches on the rotating part of the dome.",
+    "sensorsRotatingPartSelectors": "Sensors for the selectors on the rotating part of the dome.",
+    "sensorsRotatingPartEmergencyPushbuttons": "Sensors for the emergency push buttons on the rotating part "
+    "of the dome.",
+    "sensorsRotatingPartPowerAvailable": "Sensors for if power is available on the rotating part of the "
+    "dome.",
+    "sensorsRotatingPartHatches": "Sensors for the hatches on the rotating part of the dome.",
+    "sensorsRotatingPartPhotocells": "Sensors for the photo cells on the rotating part of the dome.",
+    "sensorsRotatingPartLightCurtain": "Sensors for the light curtain on the rotating part of the dome.",
+    "sensorsRotatingPartOBC": "Sensors for the overhead bridge crane on the rotating part of the dome.",
+    "sensorsRotatingPartAxialFans": "Sensors for the axian fans on the rotating part of the dome.",
+    "sensorsRotatingPartLights": "Sensors for the lights on the rotating part of the dome.",
+    "sensorsRotatingPartHeatingCables": "Sensors for the heating cables on the rotating part of the dome.",
+    "sensorsRotatingPartBrakes": "Sensors for the brakes on the rotating part of the dome.",
+}

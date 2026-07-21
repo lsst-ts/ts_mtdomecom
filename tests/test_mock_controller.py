@@ -1192,8 +1192,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_MONCS, parameters={})
             self.data = await self.read()
             moncs_status = self.data[mtdomecom.LlcName.MONCS.value]
-            assert moncs_status["status"]["status"] == MotionState.CLOSED.name
-            assert moncs_status["data"] == [0.0] * mtdomecom.MON_NUM_SENSORS
+            assert moncs_status["interlocks"][mtdomecom.LlcName.AMCS.value]["gisA3Active"] is False
 
             await self.write(command=mtdomecom.CommandName.STATUS_THCS, parameters={})
             self.data = await self.read()

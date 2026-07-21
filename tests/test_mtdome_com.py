@@ -436,6 +436,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
             await self.mtdomecom_com.status_moncs()
             assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.MONCS]
+            assert "interlocks" not in self.llc_status
+            for evt_name in mtdomecom.MONCS_EVENT_NAMES:
+                assert evt_name in self.llc_status
 
             await self.mtdomecom_com.status_rad()
             assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.RAD]
