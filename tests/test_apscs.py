@@ -26,7 +26,7 @@ import pytest
 
 from lsst.ts import mtdomecom
 from lsst.ts.mtdomecom.power_management.power_draw_constants import APS_POWER_DRAW
-from lsst.ts.xml.enums.MTDome import MotionState
+from lsst.ts.xml.enums.MTDome import MotionState, OnOff
 
 START_TAI = 10001.0
 
@@ -413,3 +413,12 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
                         self.apscs.llc_status["positionActual"], abs=0.0001
                     )
                     assert self.apscs.open_limit_switches_engaged == [False, False]
+
+    async def test_set_photocell(self) -> None:
+        """Test switching off and on the photocell."""
+        self.apscs = mtdomecom.mock_llc.ApscsStatus(start_tai=START_TAI)
+        assert self.apscs.photocell_on == OnOff.ON
+        await self.apscs.set_photocell_shutter(start_tai=START_TAI, action=False)
+        assert self.apscs.photocell_on is OnOff.OFF
+        await self.apscs.set_photocell_shutter(start_tai=START_TAI, action=True)
+        assert self.apscs.photocell_on is OnOff.ON

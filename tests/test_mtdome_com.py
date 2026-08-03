@@ -345,6 +345,12 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             await self.mtdomecom_com.inflate(action=OnOff.ON)
             assert self.mtdomecom_com.mock_ctrl.amcs.seal_inflated == OnOff.ON
 
+    async def test_set_photocell_shutter(self) -> None:
+        async with self.create_mtdomecom():
+            assert self.mtdomecom_com.mock_ctrl.apscs.photocell_on == OnOff.ON
+            await self.mtdomecom_com.set_photocell_shutter(action=OnOff.OFF)
+            assert self.mtdomecom_com.mock_ctrl.apscs.photocell_on == OnOff.OFF
+
     async def test_set_power_management_mode(self) -> None:
         async with self.create_mtdomecom():
             assert self.mtdomecom_com.power_management_mode == PowerManagementMode.NO_POWER_MANAGEMENT

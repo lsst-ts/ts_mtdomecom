@@ -114,6 +114,7 @@ class CommandName(enum.StrEnum):
     SET_NORMAL_SHUTTER = "setNormalShutter"
     SET_NORMAL_MONITORING = "setNormalMonitoring"
     SET_NORMAL_THERMAL = "setNormalThermal"
+    SET_PHOTOCELL_SHUTTER = "setPhotocellShutter"
     SET_POWER_MANAGEMENT_MODE = "setPowerManagementMode"
     SET_TEMPERATURE = "setTemperature"
     SET_ZERO_AZ = "setZeroAz"
@@ -182,6 +183,7 @@ class ResponseCode(enum.IntEnum):
     INCORRECT_STATE = 5
     ROTATING_PART_NOT_RECEIVED = 6
     ROTATING_PART_NOT_REPLIED = 7
+    PHOTOCELLS_CODE = 3037
 
 
 class SlipRingState(enum.IntEnum):

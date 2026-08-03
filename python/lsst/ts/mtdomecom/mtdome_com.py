@@ -1368,6 +1368,18 @@ class MTDomeCom:
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.INFLATE, action=action.value)
 
+    async def set_photocell_shutter(self, action: OnOff) -> None:
+        """Switch on or off the shutter photocell.
+
+        Parameters
+        ----------
+        action : `OnOff`
+            The action to perform.
+        """
+        self.log.debug(f"set_photocell_shutter: {action=!s}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(command=CommandName.SET_PHOTOCELL_SHUTTER, action=action.value)
+
     async def set_power_management_mode(self, power_management_mode: PowerManagementMode) -> None:
         """Set the power management mode.
 
