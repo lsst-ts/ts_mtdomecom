@@ -19,12 +19,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import json
-import pathlib
+import unittest
 
-from .registry import registry
+from lsst.ts import mtdomecom
 
-json_path = pathlib.Path(__file__).parents[0] / "command.json"
-with open(json_path) as f:
-    lines = "".join(f.readlines())
-    registry["command"] = json.loads(lines)
+START_TAI = 10001.0
+
+
+class MoncsTestCase(unittest.IsolatedAsyncioTestCase):
+    """A simple test class for testing the MonCS telemetry."""
+
+    async def test_telemetry(self) -> None:
+        """Test the telemetry."""
+        moncs = mtdomecom.mock_llc.MoncsStatus()
+        await moncs.determine_status(current_tai=START_TAI)
+        assert moncs.llc_status["interlocks"][mtdomecom.LlcName.AMCS.value]["gisA3Active"] is False

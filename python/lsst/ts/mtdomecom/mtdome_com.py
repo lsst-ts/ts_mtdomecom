@@ -1368,6 +1368,18 @@ class MTDomeCom:
         await self.update_status_of_non_status_command(True)
         await self.write_then_read_reply(command=CommandName.INFLATE, action=action.value)
 
+    async def set_photocell_shutter(self, action: OnOff) -> None:
+        """Switch on or off the shutter photocell.
+
+        Parameters
+        ----------
+        action : `OnOff`
+            The action to perform.
+        """
+        self.log.debug(f"set_photocell_shutter: {action=!s}")
+        await self.update_status_of_non_status_command(True)
+        await self.write_then_read_reply(command=CommandName.SET_PHOTOCELL_SHUTTER, action=action.value)
+
     async def set_power_management_mode(self, power_management_mode: PowerManagementMode) -> None:
         """Set the power management mode.
 
@@ -1480,6 +1492,9 @@ class MTDomeCom:
         if llc_name == LlcName.CBCS and "timestamp" in pre_processed_status:
             del pre_processed_status["timestamp"]
 
+        if llc_name == LlcName.MONCS:
+            pre_processed_status = await self._rearrange_moncs_status_items(pre_processed_status)
+
         # Store the status for reference.
         self.lower_level_status[llc_name] = pre_processed_status
 
@@ -1521,9 +1536,7 @@ class MTDomeCom:
                     ).degree
                     pre_processed_telemetry[key] = offset_value
             elif key == "timestampUTC":
-                # DM-26653: The name of this parameter is still under
-                # discussion.
-                pre_processed_telemetry["timestamp"] = llc_status["timestampUTC"]
+                pre_processed_telemetry["timestamp"] = utils.tai_from_utc(llc_status["timestampUTC"])
             else:
                 # No conversion needed since the value does not express an
                 # angle.
@@ -1614,6 +1627,42 @@ class MTDomeCom:
                     status["positionActual"][i]
                 )
                 self.log.debug(f"Corrected positionActual[{i}]={status['positionActual'][i]}")
+
+        return status
+
+    async def _rearrange_moncs_status_items(self, status: dict[str, typing.Any]) -> dict[str, typing.Any]:
+        """Rearrange the MonCS status items.
+
+        This helps to process the MonCS telemetry further upstream.
+
+        Parameters
+        ----------
+        status : `dict` [ `str`, `typing.Any` ]
+            A dictionary containing status data.
+
+        Returns
+        -------
+        dict [ str, typing.Any ]
+            A dictionary representing the rearranged status data.
+        """
+
+        interlocks = status["interlocks"]
+        for llc in interlocks:
+            status[f"interlocks{llc[0].upper()}{llc[1:]}"] = interlocks[llc]
+        del status["interlocks"]
+
+        fixed_part = status["sensors"]["fixedPart"]
+        for llc in ["alarms", "inflatableSeal", "lines24V", "selectors", "valves"]:
+            status[f"sensorsFixedPart{llc[0].upper()}{llc[1:]}"] = fixed_part[llc]
+            del status["sensors"]["fixedPart"][llc]
+        status["sensorsFixedPart"] = {}
+        for llc in status["sensors"]["fixedPart"]:
+            status["sensorsFixedPart"][llc] = status["sensors"]["fixedPart"][llc]
+
+        rotating_part = status["sensors"]["rotatingPart"]
+        for llc in rotating_part:
+            status[f"sensorsRotatingPart{llc[0].upper()}{llc[1:]}"] = rotating_part[llc]
+        del status["sensors"]
 
         return status
 

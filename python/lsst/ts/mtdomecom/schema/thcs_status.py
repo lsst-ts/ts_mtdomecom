@@ -22,9 +22,10 @@
 import json
 import pathlib
 
+from ..enums import LlcName
 from .registry import registry
 
 json_path = pathlib.Path(__file__).parents[0] / "thcs_status.json"
 with open(json_path) as f:
     lines = "".join(f.readlines())
-    registry["ThCS"] = json.loads(lines)
+    registry[LlcName.THCS.value] = json.loads(lines)

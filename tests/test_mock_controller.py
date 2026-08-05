@@ -1140,6 +1140,18 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             amcs_status = self.data[mtdomecom.LlcName.AMCS.value]
             assert amcs_status["status"][mtdomecom.CommandName.INFLATE] == OnOff.ON.value
 
+    async def test_set_photocell_shutter(self) -> None:
+        async with self.create_mtdomecom_controller(), self.create_client():
+            # Make sure that the photocell status is set to ON.
+            assert self.mock_ctrl.apscs.photocell_on == OnOff.ON
+
+            await self.write(
+                command=mtdomecom.CommandName.SET_PHOTOCELL_SHUTTER,
+                parameters={"action": OnOff.OFF.value},
+            )
+            await self.read()
+            assert self.mock_ctrl.apscs.photocell_on == OnOff.OFF
+
     async def test_fans(self) -> None:
         async with self.create_mtdomecom_controller(), self.create_client():
             # Make sure that the fans status is set to OFF
@@ -1192,8 +1204,7 @@ class MockControllerTestCase(tcpip.BaseOneClientServerTestCase):
             await self.write(command=mtdomecom.CommandName.STATUS_MONCS, parameters={})
             self.data = await self.read()
             moncs_status = self.data[mtdomecom.LlcName.MONCS.value]
-            assert moncs_status["status"]["status"] == MotionState.CLOSED.name
-            assert moncs_status["data"] == [0.0] * mtdomecom.MON_NUM_SENSORS
+            assert moncs_status["interlocks"][mtdomecom.LlcName.AMCS.value]["gisA3Active"] is False
 
             await self.write(command=mtdomecom.CommandName.STATUS_THCS, parameters={})
             self.data = await self.read()

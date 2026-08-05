@@ -21,9 +21,10 @@
 
 import json
 
+from ..enums import LlcName
 from .registry import registry
 
-registry["CBCS"] = json.loads(
+registry[LlcName.CBCS.value] = json.loads(
     """
 {
   "$schema": "http://json-schema.org/draft-07/schema#",

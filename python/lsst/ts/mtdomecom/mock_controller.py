@@ -172,6 +172,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             CommandName.SET_NORMAL_MONITORING: self.set_normal_monitoring,
             CommandName.SET_NORMAL_SHUTTER: self.set_normal_shutter,
             CommandName.SET_NORMAL_THERMAL: self.set_normal_thermal,
+            CommandName.SET_PHOTOCELL_SHUTTER: self.set_photocell_shutter,
             CommandName.SET_TEMPERATURE: self.set_temperature,
             CommandName.SET_ZERO_AZ: self.set_zero_az,
             CommandName.STATUS_AMCS: self.status_amcs,
@@ -277,7 +278,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
             data = await self.read_json()
             self.log.debug(f"Read command data: {data!r}.")
         except Exception as e:
-            self.log.warning(f"Ignoring a command that was not valid json: {e!r}.")
+            self.log.exception(f"Ignoring a command that was not valid json: {e!r}.")
             return
         try:
             validate(data)
@@ -312,6 +313,7 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
                 else:
                     func = self.dispatch_dict[cmd]
                     kwargs = data["parameters"]
+                    self.log.debug(f"Trying to execute {func} with parameters: {kwargs!r}.")
 
                     if self.enable_slow_network:
                         # Mock a slow network.
@@ -796,16 +798,27 @@ class MockMTDomeController(tcpip.OneClientReadLoopServer):
         assert self.thcs is not None
         await self.thcs.exit_fault()
 
-    async def inflate(self, action: str) -> None:
+    async def inflate(self, action: bool) -> None:
         """Inflate or deflate the inflatable seal.
 
         Parameters
         ----------
-        action: `str`
-            ON means inflate and OFF deflate the inflatable seal.
+        action: `bool`
+            True means inflate and False deflate the inflatable seal.
         """
         assert self.amcs is not None
         await self.amcs.inflate(self.current_tai, action)
+
+    async def set_photocell_shutter(self, action: bool) -> None:
+        """Switch on or off the shutter photocell.
+
+        Parameters
+        ----------
+        action: `bool`
+            ON means switch on and OFF means switch off the shutter photocell.
+        """
+        assert self.apscs is not None
+        await self.apscs.set_photocell_shutter(self.current_tai, action)
 
     async def fans(self, speed: float) -> None:
         """Enable or disable the fans in the dome.
