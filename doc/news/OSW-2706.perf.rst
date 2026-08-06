@@ -1,1 +1,0 @@
-Started using the LlcName enum instead of hardcoded names when loading JSON schemas.
