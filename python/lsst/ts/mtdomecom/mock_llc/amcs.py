@@ -496,11 +496,8 @@ class AmcsStatus(BaseMockStatus):
         self.target_state = MotionState.STOPPED.name
         return 0.0
 
-    async def inflate(self, start_tai: float, action: str) -> float:
+    async def inflate(self, start_tai: float, action: bool) -> float:
         """Inflate or deflate the inflatable seal.
-
-        This is a placeholder for now until it becomes clear what this command
-        is supposed to do.
 
         Parameters
         ----------
@@ -508,9 +505,8 @@ class AmcsStatus(BaseMockStatus):
             The TAI time, unix seconds, when the command was issued. To model
             the real dome, this should be the current time. However, for unit
             tests it can be convenient to use other values.
-        action: `str`
-            The value should be ON or OFF but the value doesn't get validated
-            here.
+        action: `bool`
+            True means inflate and False means deflate the inflatable seal.
 
         Returns
         -------

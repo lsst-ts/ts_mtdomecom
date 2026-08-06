@@ -345,6 +345,12 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
             await self.mtdomecom_com.inflate(action=OnOff.ON)
             assert self.mtdomecom_com.mock_ctrl.amcs.seal_inflated == OnOff.ON
 
+    async def test_set_photocell_shutter(self) -> None:
+        async with self.create_mtdomecom():
+            assert self.mtdomecom_com.mock_ctrl.apscs.photocell_on == OnOff.ON
+            await self.mtdomecom_com.set_photocell_shutter(action=OnOff.OFF)
+            assert self.mtdomecom_com.mock_ctrl.apscs.photocell_on == OnOff.OFF
+
     async def test_set_power_management_mode(self) -> None:
         async with self.create_mtdomecom():
             assert self.mtdomecom_com.power_management_mode == PowerManagementMode.NO_POWER_MANAGEMENT
@@ -436,6 +442,9 @@ class MTDomeComTestCase(unittest.IsolatedAsyncioTestCase):
 
             await self.mtdomecom_com.status_moncs()
             assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.MONCS]
+            assert "interlocks" not in self.llc_status
+            for evt_name in mtdomecom.MONCS_EVENT_NAMES:
+                assert evt_name in self.llc_status
 
             await self.mtdomecom_com.status_rad()
             assert self.llc_status == self.mtdomecom_com.lower_level_status[mtdomecom.LlcName.RAD]

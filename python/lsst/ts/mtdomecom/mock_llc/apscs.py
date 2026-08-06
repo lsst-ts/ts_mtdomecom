@@ -27,7 +27,7 @@ import random
 
 import numpy as np
 
-from lsst.ts.xml.enums.MTDome import MotionState, OpenClose
+from lsst.ts.xml.enums.MTDome import MotionState, OnOff, OpenClose
 
 from ..constants import (
     APSCS_CLOSED_POSITION,
@@ -38,9 +38,13 @@ from ..constants import (
     APSCS_POSITION_JITTER,
     APSCS_SHUTTER_SPEED,
 )
-from ..enums import InternalMotionState
+from ..enums import InternalMotionState, ResponseCode
 from ..power_management.power_draw_constants import APS_POWER_DRAW
 from .base_mock_llc import DEFAULT_MESSAGES, FAULT_MESSAGES, BaseMockStatus
+
+PHOTOCELL_MESSAGE = [
+    {"code": ResponseCode.PHOTOCELLS_CODE, "description": "WARNING: Aps photocells are switched {}."}
+]
 
 
 class ApscsStatus(BaseMockStatus):
@@ -77,6 +81,7 @@ class ApscsStatus(BaseMockStatus):
             APSCS_NUM_SHUTTERS * APSCS_NUM_MOTORS_PER_SHUTTER, dtype=float
         )
         self.power_draw = np.zeros(APSCS_NUM_SHUTTERS, dtype=float)
+        self.photocell_on = OnOff.ON
 
         # State machine-related attributes.
         self.current_state = [MotionState.CLOSED.name, MotionState.CLOSED.name]
@@ -393,9 +398,20 @@ class ApscsStatus(BaseMockStatus):
                 self.start_position[shutter_id] = 0.0
                 self.power_draw[shutter_id] = 0.0
                 self.drive_torque_actual[shutter_id] = 0.0
+
+        messages = self.messages
+        photocell_messages = PHOTOCELL_MESSAGE
+        assert isinstance(photocell_messages[0]["description"], str)
+        photocell_messages[0]["description"] = photocell_messages[0]["description"].format(
+            "on" if self.photocell_on else "off"
+        )
+        if self.messages == DEFAULT_MESSAGES:
+            messages = photocell_messages
+        else:
+            messages = messages + photocell_messages
         self.llc_status = {
             "status": {
-                "messages": self.messages,
+                "messages": messages,
                 "status": self.current_state,
                 "operationalMode": self.operational_mode.name,
             },
@@ -565,6 +581,28 @@ class ApscsStatus(BaseMockStatus):
             return await self.openShutter(start_tai)
         else:
             return await self.closeShutter(start_tai)
+
+    async def set_photocell_shutter(self, start_tai: float, action: bool) -> float:
+        """Switch on or off the shutter photocell.
+
+        Parameters
+        ----------
+        start_tai: `float`
+            The TAI time, unix seconds, when the command was issued. To model
+            the real dome, this should be the current time. However, for unit
+            tests it can be convenient to use other values.
+        action: `bool`
+            True means switch on and False means switch off.
+
+        Returns
+        -------
+        `float`
+            The expected duration of the command [s].
+        """
+        self.photocell_on = OnOff(action)
+        duration = 0.0
+        self.end_tai = start_tai
+        return duration
 
     async def exit_fault(self, start_tai: float) -> float:
         """Clear the fault state.
