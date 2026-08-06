@@ -8,6 +8,22 @@ Version History
 
 .. towncrier release notes start
 
+v0.8.0 (2026-08-06)
+===================
+
+New Features
+------------
+
+- Added support for the updated MonCS telemetry schema to the simulator. (`OSW-2706 <https://rubinobs.atlassian.net//browse/OSW-2706>`_)
+- Added support for the setPhotocellShutter command to the simulator. (`OSW-2706 <https://rubinobs.atlassian.net//browse/OSW-2706>`_)
+
+
+Performance Enhancement
+-----------------------
+
+- Started using the LlcName enum instead of hardcoded names when loading JSON schemas. (`OSW-2706 <https://rubinobs.atlassian.net//browse/OSW-2706>`_)
+
+
 v0.7.1 (2026-07-21)
 ===================
 
