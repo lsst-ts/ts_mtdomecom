@@ -1,0 +1,1 @@
+Made sure that the ApSCS status message correctly reflects the photocell status.
