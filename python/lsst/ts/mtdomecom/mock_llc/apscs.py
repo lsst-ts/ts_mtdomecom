@@ -43,7 +43,10 @@ from ..power_management.power_draw_constants import APS_POWER_DRAW
 from .base_mock_llc import DEFAULT_MESSAGES, FAULT_MESSAGES, BaseMockStatus
 
 PHOTOCELL_MESSAGE = [
-    {"code": ResponseCode.PHOTOCELLS_CODE, "description": "WARNING: Aps photocells are switched {}."}
+    {
+        "code": ResponseCode.PHOTOCELLS_CODE.value,
+        "description": "WARNING: Aps photocells are switched off.",
+    }
 ]
 
 
@@ -400,15 +403,12 @@ class ApscsStatus(BaseMockStatus):
                 self.drive_torque_actual[shutter_id] = 0.0
 
         messages = self.messages
-        photocell_messages = PHOTOCELL_MESSAGE
-        assert isinstance(photocell_messages[0]["description"], str)
-        photocell_messages[0]["description"] = photocell_messages[0]["description"].format(
-            "on" if self.photocell_on else "off"
-        )
-        if self.messages == DEFAULT_MESSAGES:
-            messages = photocell_messages
-        else:
-            messages = messages + photocell_messages
+        if self.photocell_on == OnOff.OFF:
+            # Photocell warnings are only included when they are switched off.
+            if self.messages == DEFAULT_MESSAGES:
+                messages = PHOTOCELL_MESSAGE
+            else:
+                messages = messages + PHOTOCELL_MESSAGE
         self.llc_status = {
             "status": {
                 "messages": messages,

@@ -418,7 +418,21 @@ class ApscsTestCase(unittest.IsolatedAsyncioTestCase):
         """Test switching off and on the photocell."""
         self.apscs = mtdomecom.mock_llc.ApscsStatus(start_tai=START_TAI)
         assert self.apscs.photocell_on == OnOff.ON
+        await self.apscs.determine_status(current_tai=START_TAI)
+        assert len(self.apscs.llc_status["status"]["messages"]) == 1
+        assert "No Errors" == self.apscs.llc_status["status"]["messages"][0]["description"]
+
         await self.apscs.set_photocell_shutter(start_tai=START_TAI, action=False)
         assert self.apscs.photocell_on is OnOff.OFF
+        await self.apscs.determine_status(current_tai=START_TAI)
+        assert len(self.apscs.llc_status["status"]["messages"]) == 1
+        assert (
+            "WARNING: Aps photocells are switched off."
+            == self.apscs.llc_status["status"]["messages"][0]["description"]
+        )
+
         await self.apscs.set_photocell_shutter(start_tai=START_TAI, action=True)
         assert self.apscs.photocell_on is OnOff.ON
+        await self.apscs.determine_status(current_tai=START_TAI)
+        assert len(self.apscs.llc_status["status"]["messages"]) == 1
+        assert "No Errors" == self.apscs.llc_status["status"]["messages"][0]["description"]

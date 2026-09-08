@@ -87,9 +87,6 @@ LWSCS_AMAX = math.radians(0.875)
 # Maximum velocity in rad/s
 LWSCS_VMAX = math.radians(1.75)
 
-# MON constants.
-MON_NUM_SENSORS = 16
-
 # RAD constants.
 RAD_NUM_DOORS = 2
 RAD_NUM_LIMIT_SWITCHES = 4

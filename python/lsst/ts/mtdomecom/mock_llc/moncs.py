@@ -23,11 +23,8 @@ __all__ = ["MoncsStatus"]
 
 import logging
 
-import numpy as np
-
 from lsst.ts.xml.enums.MTDome import MotionState
 
-from ..constants import MON_NUM_SENSORS
 from .base_mock_llc import BaseMockStatus
 
 
@@ -41,7 +38,6 @@ class MoncsStatus(BaseMockStatus):
         self.log = logging.getLogger("MockMoncsStatus")
         self.status = MotionState.CLOSED.name
         self.messages = [{"code": 0, "description": "No Errors"}]
-        self.data = np.zeros(MON_NUM_SENSORS, dtype=float)
 
     async def determine_status(self, current_tai: float) -> None:
         """Determine the status of the Lower Level Component and store it in
