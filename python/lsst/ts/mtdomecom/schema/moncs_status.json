@@ -9,7 +9,7 @@
         "response": {
             "type": "number"
         },
-        "monCS": {
+        "MonCS": {
             "type": "object",
             "properties": {
                 "interlocks": {
@@ -1664,6 +1664,6 @@
     "required": [
         "commandId",
         "response",
-        "monCS"
+        "MonCS"
     ]
 }
