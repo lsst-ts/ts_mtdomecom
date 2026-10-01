@@ -8,6 +8,29 @@ Version History
 
 .. towncrier release notes start
 
+v0.8.1 (2026-10-01)
+===================
+
+Bug Fixes
+---------
+
+- Made sure that the ApSCS status message correctly reflects the photocell status. (`OSW-2822 <https://rubinobs.atlassian.net//browse/OSW-2822>`_)
+- Fixed a typo in the statusMonCS telemetry JSON schema. (`SSW-3009 <https://rubinobs.atlassian.net//browse/SSW-3009>`_)
+
+
+Performance Enhancement
+-----------------------
+
+- Removed unused attribute and related imports. (`OSW-2822 <https://rubinobs.atlassian.net//browse/OSW-2822>`_)
+
+
+Other Changes and Additions
+---------------------------
+
+- Added documentation describing where local boxes and some sensors are on the inside of the MTDome. (`OSW-2822 <https://rubinobs.atlassian.net//browse/OSW-2822>`_)
+- Updated all Python license headers. (`OSW-2863 <https://rubinobs.atlassian.net//browse/OSW-2863>`_)
+
+
 v0.8.0 (2026-08-06)
 ===================
 
