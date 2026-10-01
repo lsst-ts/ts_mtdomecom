@@ -22,6 +22,7 @@ Using lsst.ts.mtdomecom
     power_management
     amcs_and_thcs_telemetry_details
     louver_locations
+    cabinet_and_local_box_locations
     :maxdepth: 2
 
 Build and Test
@@ -31,6 +32,7 @@ This package has the following requirements:
 
 * ts_tcpip
 * ts_utils
+* ts_xml
 
 The package is compatible with LSST DM's ``scons`` build system and ``eups`` package management system.
 Assuming you have the basic LSST DM stack installed you can do the following, from within the package directory:
