@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.8.2 (2026-10-01)
+===================
+
+Bug Fixes
+---------
+
+- Fixed the conda uploads. (`SSW-3010 <https://rubinobs.atlassian.net//browse/SSW-3010>`_)
+
+
 v0.8.1 (2026-10-01)
 ===================
 
