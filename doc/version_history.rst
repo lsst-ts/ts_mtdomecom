@@ -8,6 +8,15 @@ Version History
 
 .. towncrier release notes start
 
+v0.8.3 (2026-10-20)
+===================
+
+Performance Enhancement
+-----------------------
+
+- Added a workaround for the old format MonCS telemetry. (`SSW-3086 <https://rubinobs.atlassian.net//browse/SSW-3086>`_)
+
+
 v0.8.2 (2026-10-01)
 ===================
 
