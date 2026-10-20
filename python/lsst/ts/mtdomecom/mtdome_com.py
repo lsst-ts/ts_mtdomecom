@@ -1646,6 +1646,13 @@ class MTDomeCom:
             A dictionary representing the rearranged status data.
         """
 
+        # TODO OSW-2451 Remove backward compatibility.
+        #  Note that the old telemetry is exactly the same as the ThCS
+        #  telemetry, so in that case the MonCS telemetry is ignored to avoid
+        #  duplication.
+        if "data" in status:
+            return {}
+
         interlocks = status["interlocks"]
         for llc in interlocks:
             status[f"interlocks{llc[0].upper()}{llc[1:]}"] = interlocks[llc]
