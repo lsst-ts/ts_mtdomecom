@@ -1,1 +1,0 @@
-Added a workaround for the old format MonCS telemetry.
